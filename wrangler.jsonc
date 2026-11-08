@@ -3,5 +3,7 @@
   "main": "cloudflare/worker.mjs",
   "compatibility_date": "2026-11-08",
   "workers_dev": true,
-  "build": {"command": "node build-worker.mjs"}
+  "build": {"command": "node build-worker.mjs"},
+  "d1_databases": [{"binding":"DB","database_name":"studyflow-accounts","database_id":"ff8d35b3-6f72-4cd8-a5be-1821ce664827"}],
+  "vars": {"GOOGLE_CLIENT_ID":"753665371499-jqaovvubbm3vg0p80u9hpt5okoqllb57.apps.googleusercontent.com"}
 }

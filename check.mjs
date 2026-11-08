@@ -3,9 +3,10 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 const source=readFileSync(new URL('./dist/app.js',import.meta.url),'utf8');
 const store=new Map(),elements=new Map(),handlers={};
-function element(key){if(!elements.has(key))elements.set(key,{innerHTML:'',textContent:'',value:'',classList:{add(){},remove(){}},setAttribute(){},removeAttribute(){},focus(){},showModal(){this.open=true;},close(){this.open=false;},elements:{due:{}},addEventListener(type,fn){handlers[key+':'+type]=fn;}});return elements.get(key);}
+function element(key){if(!elements.has(key))elements.set(key,{innerHTML:'',textContent:'',value:'',dataset:{},classList:{add(){},remove(){}},setAttribute(){},removeAttribute(){},focus(){},showModal(){this.open=true;},close(){this.open=false;},elements:{due:{}},addEventListener(type,fn){handlers[key+':'+type]=fn;}});return elements.get(key);}
 const document={querySelector:element,querySelectorAll:()=>[],addEventListener:(type,fn)=>handlers[type]=fn};
 const context=vm.createContext({document,location:{hash:''},localStorage:{getItem:k=>store.get(k)||null,setItem:(k,v)=>store.set(k,v)},window:{addEventListener(){}},crypto:{randomUUID:()=> 'test-id'},FormData:class{constructor(form){this.data=form.data;}get(k){return this.data[k];}},setInterval(){},setTimeout(){},clearTimeout(){},console});
+vm.runInContext('function gradesPage(){return ""};function accountPage(){return ""};function authPage(){return ""}',context);
 vm.runInContext(source,context);
 const run=code=>vm.runInContext(code,context);
 assert.equal(run('assignments.length'),6);

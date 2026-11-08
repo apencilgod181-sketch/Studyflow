@@ -1,1 +1,12 @@
-{"name":"studyflow","version":"1.0.0","private":true,"scripts":{"dev":"node server.mjs","start":"node server.mjs","check":"node --check dist/app.js"}}
+{
+  "name": "studyflow",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "node server.mjs",
+    "start": "node server.mjs",
+    "check": "node --check dist/app.js && node --check dist/accounts.js && node --check backend.mjs",
+    "test": "node check.mjs && node frontend-check.mjs && node backend-check.mjs",
+    "build": "node build-worker.mjs"
+  }
+}

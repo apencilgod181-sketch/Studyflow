@@ -1,0 +1,22 @@
+import vm from 'node:vm';
+import {readFileSync} from 'node:fs';
+import assert from 'node:assert/strict';
+const cloud=new Map();
+const user={id:'test-student',name:'Test student',email:'student@example.invalid',provider:'password'};
+async function device(store=new Map()){const elements=new Map(),events={};function el(key){if(!elements.has(key))elements.set(key,{dataset:{},value:'',innerHTML:'',textContent:'',classList:{add(){},remove(){}},setAttribute(){},removeAttribute(){},focus(){},close(){},showModal(){},elements:{due:{}},addEventListener(name,fn){(events[key+':'+name]??=[]).push(fn);},querySelector(){return el('button');}});return elements.get(key);}
+ const document={querySelector:el,querySelectorAll:()=>[],contains:()=>false,visibilityState:'visible',addEventListener(name,fn){(events[name]??=[]).push(fn);}};
+ const context=vm.createContext({document,location:{hash:'#dashboard',hostname:'studyflow.test'},localStorage:{getItem:k=>store.get(k)||null,setItem:(k,v)=>store.set(k,v),removeItem:k=>store.delete(k)},window:{addEventListener(){}},crypto:{randomUUID:()=>crypto.randomUUID()},structuredClone,FormData:class{constructor(form){this.data=form.data;}get(k){return this.data[k];}*[Symbol.iterator](){yield*Object.entries(this.data);}},setTimeout(){},clearTimeout(){},setInterval(){},console,fetch:async(url,options)=>{const path=url.replace('/api/',''),id=options.headers['X-StudyFlow-Account'];let status=200,data={};if(path==='config')data={googleClientId:null};if(path==='me')data={user:null};if(path==='plan'){if(options.method==='PUT'){const body=JSON.parse(options.body),old=cloud.get(id)||{revision:0,data:null};if(old.revision!==body.revision){status=409;data={error:'Conflict'};}else{data={revision:old.revision+1};cloud.set(id,{...data,data:body.data});}}else data=structuredClone(cloud.get(id)||{revision:0,data:null});}return {ok:status===200,status,json:async()=>data};}});
+ vm.runInContext(readFileSync('dist/app.js','utf8'),context);vm.runInContext(readFileSync('dist/accounts.js','utf8'),context);await new Promise(resolve=>setImmediate(resolve));
+ return {run:code=>vm.runInContext(code,context),events,store,el};
+}
+const first=await device();const guest=first.store.get('studyflow.assignments.v1');await first.run(`enterAccount(${JSON.stringify(user)})`);
+first.run("assignments=[{id:'homework',name:'Finish chapter',subject:'English',due:'2026-12-01',minutes:25,type:'Assignment',priority:'normal',completed:false}];persist()");await first.run('pushPlan()');
+assert.equal(first.store.get('studyflow.assignments.v1'),guest,'Guest data must stay separate');
+const submit=first.events.submit[0];await submit({preventDefault(){},target:{id:'grade-form',data:{subject:'English',name:'Quiz',score:'18',max:'20',date:'2026-11-08',weight:'1'}}});await first.run('pushPlan()');assert.equal(cloud.get(user.id).data.grades[0].score,18);
+const second=await device();await second.run(`enterAccount(${JSON.stringify(user)})`);assert.equal(second.run('grades.length'),1);assert.equal(second.run('assignments[0].name'),'Finish chapter');assert.ok(second.run('gradesPage().includes("90.0")'));
+first.run('assignments[0].completed=true;persist()');await first.run('pushPlan()');second.run('budget=45;save("studyflow.budget.v1",budget)');await second.run('pushPlan()');assert.equal(second.run('sync.conflict'),true);assert.equal(cloud.get(user.id).data.assignments[0].completed,true,'Stale device cannot silently overwrite');
+const reloaded=await device(second.store);await reloaded.run(`enterAccount(${JSON.stringify(user)})`);assert.equal(reloaded.run('sync.conflict'),true);
+const reloadedAgain=await device(second.store);await reloadedAgain.run(`enterAccount(${JSON.stringify(user)})`);assert.equal(reloadedAgain.run('sync.conflict'),true);
+await first.run(`enterAccount(${JSON.stringify({...user,id:'other-student',email:'other@example.invalid'})})`);assert.equal(first.run('assignments.length'),0);assert.equal(first.run('grades.length'),0);
+first.run("page='signup';authPage();page='login';authPage();page='recover';authPage();page='grades';gradesPage();");
+console.log('Passed frontend: account/guest separation, grades, weighted averages, cross-device sync, stale-write conflicts, account switching, and auth page rendering.');
