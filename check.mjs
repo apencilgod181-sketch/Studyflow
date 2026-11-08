@@ -1,0 +1,27 @@
+import vm from 'node:vm';
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+const source=readFileSync(new URL('./dist/app.js',import.meta.url),'utf8');
+const store=new Map(),elements=new Map(),handlers={};
+function element(key){if(!elements.has(key))elements.set(key,{innerHTML:'',textContent:'',value:'',classList:{add(){},remove(){}},setAttribute(){},removeAttribute(){},focus(){},showModal(){this.open=true;},close(){this.open=false;},elements:{due:{}},addEventListener(type,fn){handlers[key+':'+type]=fn;}});return elements.get(key);}
+const document={querySelector:element,querySelectorAll:()=>[],addEventListener:(type,fn)=>handlers[type]=fn};
+const context=vm.createContext({document,location:{hash:''},localStorage:{getItem:k=>store.get(k)||null,setItem:(k,v)=>store.set(k,v)},window:{addEventListener(){}},crypto:{randomUUID:()=> 'test-id'},FormData:class{constructor(form){this.data=form.data;}get(k){return this.data[k];}},setInterval(){},setTimeout(){},clearTimeout(){},console});
+vm.runInContext(source,context);
+const run=code=>vm.runInContext(code,context);
+assert.equal(run('assignments.length'),6);
+assert.ok(run('plan().filter(a=>!a.completed).reduce((s,a)=>s+a.blockMinutes,0)<=budget'));
+handlers['#assignment-form:submit']({preventDefault(){},target:{data:{name:'  Chemistry worksheet  ',subject:'Science',due:'2026-12-01',minutes:'35',priority:'high',type:'Assignment'},reset(){}}});
+assert.equal(JSON.parse(store.get('studyflow.assignments.v1')).at(-1).name,'Chemistry worksheet');
+handlers.change({target:{dataset:{complete:'test-id'},checked:true}});
+assert.equal(JSON.parse(store.get('studyflow.assignments.v1')).at(-1).completed,true);
+handlers.change({target:{dataset:{},id:'budget',value:'45'}});
+assert.equal(run('budget'),45);
+assert.ok(run('plan().filter(a=>!a.completed).reduce((s,a)=>s+a.blockMinutes,0)<=45'));
+const click=action=>handlers.click({target:{closest:()=>({dataset:{action}})}});
+element('#session-task').value='example-1';click('start');assert.equal(run('session.status'),'running');assert.ok(run('remaining()')<=1500);click('pause');assert.equal(run('session.status'),'paused');click('resume');assert.equal(run('session.status'),'running');click('finish');assert.equal(run('session.status'),'finished');
+run("notes='Photosynthesis converts sunlight into chemical energy. Chlorophyll absorbs light inside the chloroplasts.'");click('questions');assert.equal(run('questions.length'),2);assert.ok(run('questions[0].prompt.includes("________")'));
+assert.equal(run('esc("<script>")'),'&lt;script&gt;');
+run('page="weekly"; weekly()');run('page="practice"; practice()');
+vm.runInContext(source,vm.createContext({...context}));
+assert.equal(JSON.parse(store.get('studyflow.assignments.v1')).length,7);
+console.log('Passed: assignment creation, completion, persistence, time budget, timer controls, practice prompts, HTML escaping, and page rendering.');

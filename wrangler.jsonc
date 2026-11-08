@@ -1,0 +1,7 @@
+{
+  "name": "studyflow",
+  "main": "cloudflare/worker.mjs",
+  "compatibility_date": "2026-11-08",
+  "workers_dev": true,
+  "build": {"command": "node build-worker.mjs"}
+}
