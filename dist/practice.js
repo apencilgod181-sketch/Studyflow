@@ -26,12 +26,14 @@ function aiPractice() {
         <p class="muted" id="practice-file-status" role="status">${file?'Ready: '+esc(file.name):'Choose notes, a worksheet, or a study guide.'}</p>
         <p class="muted">Your document goes to Cloudflare AI when you generate a test. StudyFlow doesn’t save the document or test. Remove personal details before uploading.</p>
         <button class="button" type="button" id="practice-generate" ${busy||!file?'disabled':''}>${busy?'Creating your test…':'Generate practice test ✧'}</button>
+        <button class="text-button delete-control" type="button" id="practice-clear-file" ${busy||!file?'hidden':''}>Remove selected file</button>
         <p class="form-error" id="practice-upload-error" role="alert">${esc(error||'')}</p>
       </div>
     </section>
     <section class="card">
       <h2>Your practice test</h2>
       ${questions ? practiceQuiz(questions, answers, graded) : `<p class="empty" role="status">${busy?'Reading your document and writing questions…':'Your questions will appear here.'}</p>`}
+      ${questions && !busy ? '<button class="text-button delete-control" type="button" id="practice-clear-test">Clear practice test</button>' : ''}
     </section>
   </div>`;
 }
@@ -61,6 +63,7 @@ document.addEventListener('change', event => {
     $('#practice-file-status').textContent = file ? 'Ready: ' + file.name : 'Choose notes, a worksheet, or a study guide.';
     $('#practice-upload-error').textContent = '';
     $('#practice-generate').disabled = !file;
+    $('#practice-clear-file').hidden = !file;
   }
   if (input.form?.id === 'practice-quiz') {
     practiceUpload.answers[Number(input.name.slice(7))] = Number(input.value);
@@ -108,6 +111,22 @@ async function generatePracticeTest() {
 }
 
 document.addEventListener('click', event => {
+  if (event.target.id === 'practice-clear-file' && !practiceUpload.busy) {
+    practiceUpload.file = undefined;
+    practiceUpload.error = '';
+    render();
+    $('#practice-file').focus();
+    return;
+  }
+  if (event.target.id === 'practice-clear-test' && !practiceUpload.busy) {
+    if (confirm('Clear this practice test and its answers?')) {
+      practiceUpload.questions = undefined;
+      practiceUpload.answers = [];
+      practiceUpload.graded = false;
+      render();
+    }
+    return;
+  }
   if (event.target.id === 'practice-generate') {
     void generatePracticeTest();
     return;

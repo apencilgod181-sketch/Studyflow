@@ -55,6 +55,7 @@ function personalizePage() {
           </div>
           <p class="muted">Saving applies your Custom theme. You can switch themes in the header.</p>
           <button class="button" type="submit">Save profile and theme</button>
+          <button class="text-button delete-control" type="button" data-reset-personal>Reset name and colors</button>
         </form>
       </section>
       <section class="card" id="journal-editor">
@@ -76,7 +77,10 @@ function personalizePage() {
       <div class="section-head"><h2>Progress journal</h2><span class="pill">${profile.logs.length} entries</span></div>
       ${profile.logs.length ? profile.logs.map(entry => `<article class="journal-entry">
         <div class="section-head"><div><h3>${esc(entry.title)}</h3><p class="muted">${esc(entry.date)}</p></div>
-          <button type="button" class="text-button" data-journal-edit="${esc(entry.id)}">Edit</button></div>
+          <div class="entry-actions">
+            <button type="button" class="text-button" data-journal-edit="${esc(entry.id)}">Edit</button>
+            <button type="button" class="text-button delete-control" data-journal-delete="${esc(entry.id)}" aria-label="Delete journal entry ${esc(entry.title)}">Delete</button>
+          </div></div>
         ${entry.note ? `<p class="journal-note">${esc(entry.note)}</p>` : ''}
         ${journalPicture(entry)}
       </article>`).join('') : '<p class="muted">Your reflections and pictures will appear here.</p>'}
@@ -156,6 +160,36 @@ document.addEventListener('submit', async event => {
 });
 
 document.addEventListener('click', event => {
+  if (event.target.closest('[data-reset-personal]')) {
+    if (!confirm('Reset your preferred name and custom colors?')) return;
+    try {
+      localStorage.setItem(personalKey(), JSON.stringify({logs:personalProfile().logs}));
+      localStorage.setItem('studyflow.theme.v1', JSON.stringify('sage'));
+      currentTheme = 'sage';
+      document.documentElement.dataset.theme = currentTheme;
+      $('#studyflow-theme').value = currentTheme;
+      render();
+      toast('Name and colors reset.');
+    } catch { toast('Your browser could not reset your preferences.'); }
+    return;
+  }
+  const remove = event.target.closest('[data-journal-delete]');
+  if (remove) {
+    const profile = personalProfile();
+    const entry = profile.logs.find(log => log.id === remove.dataset.journalDelete);
+    if (!entry || !confirm(`Delete “${entry.title}” from your journal?`)) return;
+    profile.logs = profile.logs.filter(log => log.id !== entry.id);
+    try {
+      localStorage.setItem(personalKey(), JSON.stringify(profile));
+    } catch {
+      toast('Your browser could not delete this entry.');
+      return;
+    }
+    if (editingJournal === entry.id) editingJournal = undefined;
+    render();
+    toast('Journal entry deleted.');
+    return;
+  }
   const edit = event.target.closest('[data-journal-edit]');
   if (edit) {
     editingJournal = edit.dataset.journalEdit;
