@@ -37,6 +37,16 @@ h1 { font-size: clamp(1.85rem, 3.2vw, 2.65rem); font-weight: 650; letter-spacing
 .subtitle { font-size: .89rem; }
 main:focus { outline: none; }
 .page-heading > .button { flex-shrink: 0; white-space: nowrap; }
+.task-edit { flex-shrink: 0; }
+.week-task .task-edit { margin-top: 4px; }
+#undo-completion {
+  margin-inline-start: 8px;
+  padding: 3px 7px;
+  border: 1px solid currentColor;
+  border-radius: 5px;
+  background: transparent;
+  color: inherit;
+}
 .card {
   border-radius: 17px;
   box-shadow: 0 3px 10px #2e493107, 0 12px 36px #2e493105;
