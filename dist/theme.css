@@ -1,0 +1,119 @@
+:root {
+  --green: #285440;
+  --muted: #58695f;
+  --line: #dfe7dc;
+  --ease-out: cubic-bezier(.22, 1, .36, 1);
+  color: #20362c;
+  background: #f6f8f3;
+}
+
+body {
+  background: radial-gradient(ellipse at 100% 0%, #e9efe2 0%, transparent 42rem);
+}
+
+.sidebar { background: #fbfcf9; }
+.topbar { background: #f9fbf6; }
+.brand-icon {
+  background: linear-gradient(145deg, #467654, #254a38);
+  box-shadow: 0 3px 8px #254a3826;
+}
+.workspace, .eyebrow { color: #5d755e; }
+.sidebar-bottom {
+  background: linear-gradient(145deg, #eaf1e5, #f5f7ef);
+  border: 1px solid #e0e9da;
+  border-radius: 14px;
+  padding: 16px;
+}
+.sidebar-bottom .little-plant { margin-bottom: 6px; }
+.sidebar-bottom .local-badge { margin-top: 14px; padding-top: 12px; color: #5d755e; }
+nav a {
+  color: #52665a;
+  border: 1px solid transparent;
+  transition: background-color 220ms var(--ease-out), border-color 220ms var(--ease-out), color 220ms var(--ease-out);
+}
+nav a.active { background: #e6efe1; border-color: #d9e6d4; color: #264f39; }
+
+h1 { font-size: clamp(1.85rem, 3.2vw, 2.65rem); font-weight: 650; letter-spacing: -.047em; line-height: 1.16; }
+.subtitle { font-size: .89rem; }
+main:focus { outline: none; }
+.page-heading > .button { flex-shrink: 0; white-space: nowrap; }
+.card {
+  border-radius: 17px;
+  box-shadow: 0 3px 10px #2e493107, 0 12px 36px #2e493105;
+}
+.focus-card { background: #edf3e9; }
+.hero {
+  min-height: 183px;
+  border-radius: 19px;
+  background: radial-gradient(circle at 84% 12%, #fcf9e4 0%, transparent 35%),
+    linear-gradient(110deg, #e4efdd, #f1f3e7 70%, #dce9d8);
+  box-shadow: 0 10px 32px #304f3010;
+  isolation: isolate;
+}
+.hero::after {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  inset: 0 0 0 60%;
+  background: radial-gradient(circle, #63836750 1px, transparent 1.5px) 0 0 / 15px 15px;
+  mask-image: linear-gradient(90deg, transparent, #000);
+  pointer-events: none;
+}
+.hero h2 { font-size: clamp(1.38rem, 2.3vw, 1.95rem); font-weight: 650; letter-spacing: -.045em; }
+.hero p { color: #4b654d; }
+.hero .book { box-shadow: 5px 7px 0 #aec39e, 7px 13px 22px #344d3833; }
+.hero-art { transition: transform 450ms var(--ease-out); }
+.ring { box-shadow: 0 0 0 5px #f6f8f3; }
+.pill { background: #edf2e9; color: #4e674e; border-radius: 999px; }
+.task-meta, .task-time, .day-label, .grade-result small { color: #5a6b5d; }
+.auth-paper { box-shadow: 9px 10px 0 #dce6d1, 14px 20px 40px #304f3012; }
+.subject-card { border-top: 3px solid #adc5a2; }
+.week-task, .task-title, .grade-row strong { overflow-wrap: anywhere; }
+
+.button {
+  transition: background-color 220ms var(--ease-out), box-shadow 220ms var(--ease-out), transform 220ms var(--ease-out);
+}
+.button:not(.secondary) { box-shadow: 0 3px 7px #28544020; }
+.button:not(:disabled):active { transform: translateY(1px); }
+.icon-button, input, select, textarea {
+  transition: border-color 200ms var(--ease-out), box-shadow 200ms var(--ease-out), background-color 200ms var(--ease-out);
+}
+:is(a, button, input, select, textarea, summary):focus-visible {
+  outline: 2px solid #38734f;
+  outline-offset: 3px;
+}
+
+@media (hover: hover) {
+  .button:not(:disabled):hover { transform: translateY(-1px); box-shadow: 0 6px 13px #28544025; }
+  .hero:hover .hero-art { transform: translateY(-4px) rotate(-2deg); }
+  .icon-button:hover { background: #edf3e9; }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  dialog[open] { animation: dialog-enter 240ms var(--ease-out) both; }
+  dialog[open]::backdrop { animation: backdrop-enter 200ms ease-out both; }
+  #toast.visible { animation: toast-enter 240ms var(--ease-out) both; }
+  @keyframes dialog-enter {
+    from { opacity: .65; transform: translateY(8px) scale(.985); }
+    to { opacity: 1; transform: none; }
+  }
+  @keyframes backdrop-enter { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes toast-enter {
+    from { opacity: 0; translate: 0 6px; }
+    to { opacity: 1; translate: 0 0; }
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+  .hero:hover .hero-art, .button:not(:disabled):is(:hover, :active) { transform: none; }
+}
+
+@media (max-width: 850px) {
+  .sidebar-bottom { padding: 12px; }
+}
+
+@media (max-width: 600px) {
+  .hero { min-height: 158px; }
+  .card { border-radius: 14px; }
+}

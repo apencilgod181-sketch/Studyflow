@@ -48,5 +48,18 @@ $('#close-dialog').onclick=()=>$('#assignment-dialog').close();
 document.addEventListener('change',e=>{if(e.target.dataset.complete){const a=assignments.find(a=>a.id===e.target.dataset.complete);if(a){a.completed=e.target.checked;persist();render();toast(a.completed?'A little win. Nicely done.':'Assignment moved back to your plan.');}}if(e.target.id==='budget'){const n=Number(e.target.value);if(!Number.isFinite(n)||n<15||n>480){toast('Choose between 15 and 480 minutes.');e.target.value=budget;return;}budget=n;save('studyflow.budget.v1',budget);render();}if(e.target.id==='session-task'){session.task=e.target.value;save('studyflow.session.v1',session);}});
 document.addEventListener('input',e=>{if(e.target.id==='notes')notes=e.target.value;});
 document.addEventListener('click',e=>{const target=e.target.closest('[data-action],[data-week]');if(!target)return;if(target.dataset.week){weekOffset+=Number(target.dataset.week);render();return;}switch(target.dataset.action){case 'add':$('#assignment-form').elements.due.value=today;$('#assignment-dialog').showModal();break;case 'toggle-all':showAll=!showAll;render();break;case 'this-week':weekOffset=0;render();break;case 'start':session={status:'running',remaining:1500,endsAt:Date.now()+1500000,task:$('#session-task').value};save('studyflow.session.v1',session);render();break;case 'pause':session.remaining=remaining();session.status='paused';session.endsAt=null;save('studyflow.session.v1',session);updateTimer();break;case 'resume':session.status='running';session.endsAt=Date.now()+session.remaining*1000;save('studyflow.session.v1',session);updateTimer();break;case 'finish':session.remaining=remaining();session.status='finished';session.endsAt=null;save('studyflow.session.v1',session);render();break;case 'questions':{const sentences=notes.split(/[.!?\n]+/).map(s=>s.trim()).filter(s=>s.split(/\s+/).length>=5);if(!sentences.length){$('#practice-error').textContent='Add a sentence with at least 5 words to create a demo question.';return;}questions=sentences.slice(0,5).map(sentence=>{const words=sentence.split(/\s+/);const index=words.reduce((best,w,i)=>w.replace(/[^a-zA-Z]/g,'').length>words[best].replace(/[^a-zA-Z]/g,'').length?i:best,0);words[index]='________';return {prompt:'Fill in the missing word: '+words.join(' ')+'.',answer:sentence+'.'};});render();break;}}});
-window.addEventListener('hashchange',()=>{render();$('#main').focus();});
+let pageEntrance;
+window.addEventListener('hashchange', () => {
+  const previousPage = page;
+  render();
+  const main = $('#main');
+  main.focus();
+  pageEntrance?.cancel();
+  if (page !== previousPage && globalThis.matchMedia?.('(prefers-reduced-motion: no-preference)').matches) {
+    pageEntrance = main.animate?.(
+      [{opacity: .72, transform: 'translateY(5px)'}, {opacity: 1, transform: 'none'}],
+      {duration: 240, easing: 'cubic-bezier(.22, 1, .36, 1)'}
+    );
+  }
+});
 setInterval(()=>{if(session.status==='running'&&remaining()===0){session.status='finished';session.remaining=0;session.endsAt=null;save('studyflow.session.v1',session);toast('Your focus session is complete. Time for a break.');if(page==='session')render();}updateTimer();},1000);
