@@ -35,15 +35,68 @@ function taskHTML(a,block=false){return `<div class="task ${a.completed?'done':'
 function dashboard(){
  const date=new Date().toLocaleDateString(undefined,{weekday:'long',month:'long',day:'numeric'});const hour=new Date().getHours();const greeting=hour<12?'Good morning':hour<18?'Good afternoon':'Good evening';
  dailyPlan=plan();const items=showAll?sorted().filter(a=>!a.completed):dailyPlan;const completed=assignments.filter(a=>a.completed).length;const total=assignments.length;const ratio=total?Math.round(completed/total*100):0;const minutes=dailyPlan.filter(a=>!a.completed).reduce((sum,a)=>sum+a.blockMinutes,0);
- return heading(date.toUpperCase(),`${greeting}, you’ve got this <span style="font-size:24px;color:#8a9d75">☀</span>`,'A little structure. A lot more headspace.',addButton)+`<section class="hero"><div class="hero-text"><p class="eyebrow">ONE THING AT A TIME</p><h2>Make room for a good day.</h2><p>Your plan is here to help you move forward.<br>Take it one task, one small win at a time.</p></div><div class="hero-art" aria-hidden="true"><span class="spark">✧</span><div class="leaf"></div><div class="leaf two"></div><div class="book"></div></div></section><div class="dashboard-grid"><div><section class="card"><div class="section-head"><div><h2>${showAll?'All assignments':'Today’s study plan'}</h2><p class="muted">${showAll?'Everything in one place. You can take it from here.':`${dailyPlan.filter(a=>!a.completed).length} study blocks · ${minutes} min of focused time`}</p></div><span class="pill">${items.length} tasks</span></div><div class="task-list">${items.length?items.map(a=>taskHTML(a,!showAll)).join(''):'<div class="empty">A little breathing room. You’re all caught up!<br>Add an assignment whenever you’re ready.</div>'}</div><div class="plan-bottom"><span>Go at your own pace.</span><button class="text-button" data-action="toggle-all">${showAll?'Back to today':'All assignments'} →</button></div><label class="budget">Time available today <input id="budget" type="number" min="15" max="480" step="5" value="${budget}" aria-label="Minutes available to study today"> minutes</label><p class="muted">Planned by due date, then priority. Longer tasks get a manageable study block. Checking a task removes it from your planner and counts it toward your progress.</p></section><div class="below-note"><span>✧</span><div>A little progress is still progress.<br>You’re building something good, one day at a time.</div></div></div><div class="right-stack"><section class="card progress-card"><h2>Your progress</h2><div class="ring" style="--p:${ratio}" role="img" aria-label="${completed} of ${total} assignments complete"><div><strong>${completed}<span style="font-size:16px;color:#9aa58f"> / ${total}</span></strong><small>tasks complete</small></div></div><p>${completed?'Look at you, moving forward.':'Every little step counts.'}</p></section><section class="card focus-card"><div class="focus-icon" aria-hidden="true">◷</div><h2>A little focus goes a long way.</h2><p>One task. A quiet moment.<br>Try a 25-minute study session.</p><a href="#session" class="button">Let’s focus <span>↗</span></a></section></div></div>`;
+ return heading(date.toUpperCase(),`${greeting}, you’ve got this <span style="font-size:24px;color:#8a9d75">☀</span>`,'A little structure. A lot more headspace.',addButton)+`<section class="hero"><div class="hero-text"><p class="eyebrow">ONE THING AT A TIME</p><h2>Make room for a good day.</h2><p>Your plan is here to help you move forward.<br>Take it one task, one small win at a time.</p></div><div class="hero-art" aria-hidden="true"><span class="spark">✧</span><div class="leaf"></div><div class="leaf two"></div><div class="book"></div></div></section><div class="dashboard-grid"><div><section class="card"><div class="section-head"><div><h2>${showAll?'All assignments':'Today’s study plan'}</h2><p class="muted">${showAll?'Everything in one place. You can take it from here.':`${dailyPlan.filter(a=>!a.completed).length} study blocks · ${minutes} min of focused time`}</p></div><span class="pill">${items.length} tasks</span></div><div class="task-list">${items.length?items.map(a=>taskHTML(a,!showAll)).join(''):'<div class="empty">A little breathing room. You’re all caught up!<br>Add an assignment whenever you’re ready.</div>'}</div><div class="plan-bottom"><span>Go at your own pace.</span><button class="text-button" data-action="toggle-all">${showAll?'Back to today':'All assignments'} →</button></div><label class="budget">Time available today <input id="budget" type="number" min="15" max="480" step="5" value="${budget}" aria-label="Minutes available to study today"> minutes</label><p class="muted">Planned by due date, then priority. Longer tasks get a manageable study block. Checking a task removes it from your planner and counts it toward your progress.</p></section><div class="below-note"><span>✧</span><div>A little progress is still progress.<br>You’re building something good, one day at a time.</div></div></div><div class="right-stack"><section class="card progress-card"><h2>Your progress</h2><div class="ring" style="--p:${ratio}" role="img" aria-label="${completed} of ${total} assignments complete"><div><strong>${completed}<span style="font-size:16px;color:#9aa58f"> / ${total}</span></strong><small>tasks complete</small></div></div><p>${completed?'Look at you, moving forward.':'Every little step counts.'}</p></section>${progressSnapshot()}<section class="card focus-card"><div class="focus-icon" aria-hidden="true">◷</div><h2>A little focus goes a long way.</h2><p>One task. A quiet moment.<br>Try a 25-minute study session.</p><a href="#session" class="button">Let’s focus <span>↗</span></a></section></div></div>`;
 }
 function weekly(){const start=new Date();start.setDate(start.getDate()-((start.getDay()+6)%7)+weekOffset*7);const days=Array.from({length:7},(_,i)=>{const d=new Date(start);d.setDate(d.getDate()+i);return d;});const keys=days.map(dateKey);const tasks=sorted().filter(a=>!a.completed);const earlier=tasks.filter(a=>a.due<keys[0]);return heading('THE BIG PICTURE','Your week, with a little breathing room.','See what’s coming. Make a little space for it.',addButton)+`<section><div class="section-head"><h2>${days[0].toLocaleDateString(undefined,{month:'short',day:'numeric'})} – ${days[6].toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'})}</h2><div class="week-toolbar"><button class="icon-button" data-week="-1" aria-label="Previous week">‹</button><button class="text-button" data-action="this-week">This week</button><button class="icon-button" data-week="1" aria-label="Next week">›</button></div></div><div class="week-grid">${days.map((d,i)=>`<section class="day ${keys[i]===today?'today':''}"><div class="day-label">${d.toLocaleDateString(undefined,{weekday:'short'})}${keys[i]===today?' · Today':''}</div><div class="day-number">${d.getDate()}</div>${tasks.filter(a=>a.due===keys[i]).map(a=>`<div class="week-task ${a.completed?'done':''}"><span class="subject">${esc(a.subject)}</span><p>${esc(a.name)}</p><small>${a.type==='Test'?'Test · ':''}${a.minutes} min</small><label style="font-size:10px;display:flex;align-items:center;margin:8px 0 0"><input style="width:14px" type="checkbox" data-complete="${esc(a.id)}" ${a.completed?'checked':''}> Complete</label><button class="text-button task-edit" type="button" data-action="edit" data-task="${esc(a.id)}" aria-label="Edit ${esc(a.name)}">Edit</button></div>`).join('')||'<p class="muted">Room to breathe.</p>'}</section>`).join('')}</div>${earlier.length?`<section class="card" style="margin-top:22px"><h2>Carry forward</h2><p class="muted">Earlier deadlines, ready for a fresh start.</p>${earlier.map(a=>taskHTML(a)).join('')}</section>`:''}</section>`;}
 function remaining(){return session.status==='running'?Math.max(0,Math.ceil((session.endsAt-Date.now())/1000)):session.remaining;}
 function sessionPage(){const active=assignments.filter(a=>!a.completed);return heading('A MOMENT TO FOCUS','One task. Your full attention.','Settle in, put distractions aside, and start when you’re ready.')+`<section class="card session-layout"><p class="eyebrow">YOUR FOCUS SPACE</p><h2>Let’s make a little progress.</h2><label>What are you working on?<select id="session-task" ${['running','paused'].includes(session.status)?'disabled':''}><option value="">Free focus · No assignment</option>${active.map(a=>`<option value="${esc(a.id)}" ${session.task===a.id?'selected':''}>${esc(a.subject)} · ${esc(a.name)}</option>`).join('')}</select></label><div id="timer" class="timer" aria-label="Time remaining">25:00</div><p class="timer-status" id="timer-status"></p><div class="timer-controls" id="timer-controls"></div><p class="muted" style="margin-top:30px">A gentle 25-minute session. Take a break whenever you need.<br>Finishing a session doesn’t mark your assignment complete.</p></section>`;}
 function updateTimer(){if(page!=='session')return;const seconds=remaining();$('#timer').textContent=`${String(Math.floor(seconds/60)).padStart(2,'0')}:${String(seconds%60).padStart(2,'0')}`;$('#timer-status').textContent={idle:'Ready when you are.',running:'A little focus, one moment at a time.',paused:'Paused. Take your time.',finished:'Session finished. Make room for a little break.'}[session.status];if($('#timer-controls').dataset.state===session.status)return;$('#timer-controls').dataset.state=session.status;$('#timer-controls').innerHTML=session.status==='running'?'<button class="button" data-action="pause">Ⅱ Pause</button><button class="button secondary" data-action="finish">Finish session</button>':session.status==='paused'?'<button class="button" data-action="resume">▷ Resume</button><button class="button secondary" data-action="finish">Finish session</button>':`<button class="button" data-action="start">▷ ${session.status==='finished'?'Start another session':'Start focusing'}</button>`;}
+let archiveQuery = '';
+const themes = ['sage', 'ocean', 'midnight'];
+let currentTheme = read('studyflow.theme.v1', 'sage');
+if (!themes.includes(currentTheme)) currentTheme = 'sage';
+if (document.documentElement) document.documentElement.dataset.theme = currentTheme;
+
+function archiveResults() {
+  const query = archiveQuery.trim().toLowerCase();
+  const completionDate = task => typeof task.completedOn === 'string' ? task.completedOn : '';
+  const tasks = assignments.filter(task => task.completed &&
+    (task.name.toLowerCase().includes(query) || task.subject.toLowerCase().includes(query)));
+  tasks.sort((a,b) => completionDate(b).localeCompare(completionDate(a)) || b.due.localeCompare(a.due));
+  if (!tasks.length) return '<p class="empty">' + (query ? 'No completed tasks match your search.' : 'Completed tasks will appear here.') + '</p>';
+  return tasks.map(task => `<div class="task archive-row">
+    <div class="task-details">
+      <strong class="task-title">${esc(task.name)}</strong>
+      <div class="task-meta"><span class="subject">${esc(task.subject)}</span>
+        <span>${completionDate(task) ? 'Completed ' + esc(dayDate(task.completedOn).toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'})) : 'Completed'}</span>
+        <span>${task.type === 'Test' ? 'Test' : 'Assignment'} · ${task.minutes} min</span>
+      </div>
+    </div>
+    <button class="button secondary small" data-action="restore-task" data-task="${esc(task.id)}" aria-label="Restore ${esc(task.name)}">Restore</button>
+  </div>`).join('');
+}
+
+function archivePage() {
+  return heading('COMPLETED WORK', 'Task archive', 'Review finished assignments or restore one to your planner.') +
+    `<section class="card"><label for="archive-search">Search by task or subject</label>
+      <input type="search" id="archive-search" value="${esc(archiveQuery)}" placeholder="Search completed tasks">
+      <div id="archive-results" class="archive-results" aria-live="polite">${archiveResults()}</div>
+    </section>`;
+}
+
+function progressSnapshot() {
+  const start = new Date();
+  start.setDate(start.getDate() - 6);
+  const firstDay = dateKey(start);
+  const now = dateKey();
+  const finished = assignments.filter(task => task.completed && task.completedOn >= firstDay && task.completedOn <= now);
+  const active = assignments.filter(task => !task.completed);
+  const overdue = active.filter(task => task.due < now).length;
+  const next = active.filter(task => task.due >= now).sort((a,b) => a.due.localeCompare(b.due))[0];
+  return `<section class="card progress-snapshot">
+    <div class="section-head"><h2>Last 7 days</h2><a href="#archive" class="text-button">View archive →</a></div>
+    <div class="progress-metrics">
+      <div><strong>${finished.length}</strong><span>Tasks finished</span></div>
+      <div><strong>${overdue}</strong><span>Overdue tasks</span></div>
+    </div>
+    <p class="muted">${next ? 'Next deadline: ' + esc(next.name) + ' · ' + esc(dueLabel(next.due)) : 'No upcoming deadlines.'}</p>
+    <a href="#weekly" class="text-button">Open weekly plan →</a>
+  </section>`;
+}
+
 function practice(){return (typeof aiPractice==='function'?aiPractice():'')+demoPractice();}
 function demoPractice(){return heading('MAKE IT STICK','Turn your notes into a little practice.','A small space to check what you remember.')+`<div class="notice"><strong>Quick recall · On this device</strong><br>This demo turns up to 5 sentences from your notes into simple recall prompts. It doesn’t understand or check the material. Your notes stay here.</div><div class="practice-layout"><section class="card"><h2>Your study notes</h2><label for="notes">Paste a few sentences or key facts</label><textarea id="notes" maxlength="15000" placeholder="e.g. Photosynthesis converts light energy into chemical energy. Chlorophyll absorbs sunlight in the chloroplasts.">${esc(notes)}</textarea><p class="muted">Use sentences of at least 5 words. Notes aren’t saved after refreshing.</p><button class="button" data-action="questions">Create demo questions <span>✧</span></button><p id="practice-error" class="muted" role="status"></p></section><section class="card"><div class="section-head"><h2>A little knowledge check</h2><span class="pill">${questions.length} questions</span></div>${questions.length?questions.map((q,i)=>`<div class="question"><span class="eyebrow">QUESTION ${i+1}</span><div>${esc(q.prompt)}</div><details><summary>Reveal note excerpt</summary>${esc(q.answer)}</details></div>`).join(''):'<div class="empty" style="text-align:center;padding:60px 20px"><span style="font-size:35px;color:#8fa47f">✧</span><h3 style="margin-top:20px">Your next “aha” starts here.</h3>Add your notes, then create a few<br>simple questions to try.</div>'}</section></div>`;}
-function render(){page=['dashboard','weekly','session','practice','grades','account','login','signup','recover'].includes(location.hash.slice(1))?location.hash.slice(1):'dashboard';document.querySelectorAll('nav a').forEach(a=>{a.classList.toggle('active',a.dataset.page===page);if(a.dataset.page===page)a.setAttribute('aria-current','page');else a.removeAttribute('aria-current');});$('#breadcrumb').textContent={dashboard:'Your overview',weekly:'Your week at a glance',session:'Your focus space',practice:'Your practice space',grades:'Your subject grades',account:'Your account',login:'Welcome back',signup:'Your next chapter',recover:'Recover your account'}[page];$('#main').innerHTML=(storageError?'<p class="storage-error">Browser storage is unavailable. Your changes will last for this visit only.</p>':'')+({dashboard,weekly,session:sessionPage,practice,grades:gradesPage,account:accountPage,login:authPage,signup:authPage,recover:authPage}[page]());document.querySelectorAll('[data-complete]').forEach(el=>{el.id='task-'+el.dataset.complete;});updateTimer();if(globalThis.afterStudyRender)globalThis.afterStudyRender();}
+function render(){page=['dashboard','weekly','session','practice','grades','archive','account','login','signup','recover'].includes(location.hash.slice(1))?location.hash.slice(1):'dashboard';document.querySelectorAll('nav a').forEach(a=>{a.classList.toggle('active',a.dataset.page===page);if(a.dataset.page===page)a.setAttribute('aria-current','page');else a.removeAttribute('aria-current');});$('#breadcrumb').textContent={dashboard:'Your overview',weekly:'Your week at a glance',session:'Your focus space',practice:'Your practice space',grades:'Your subject grades',archive:'Completed work',account:'Your account',login:'Welcome back',signup:'Your next chapter',recover:'Recover your account'}[page];$('#main').innerHTML=(storageError?'<p class="storage-error">Browser storage is unavailable. Your changes will last for this visit only.</p>':'')+({dashboard,weekly,session:sessionPage,practice,grades:gradesPage,archive:archivePage,account:accountPage,login:authPage,signup:authPage,recover:authPage}[page]());document.querySelectorAll('[data-complete]').forEach(el=>{el.id='task-'+el.dataset.complete;});updateTimer();if(globalThis.afterStudyRender)globalThis.afterStudyRender();}
 let editingAssignment;
 let assignmentEditorOwner;
 
@@ -100,9 +153,10 @@ $('#assignment-form').addEventListener('submit', event => {
 $('#close-dialog').onclick=()=>$('#assignment-dialog').close();
 document.addEventListener('change',e=>{if(e.target.dataset.complete){const a=assignments.find(a=>a.id===e.target.dataset.complete);if(a){if(!e.target.checked || a.completed)return;
       a.completed=true;
+      a.completedOn=dateKey();
       persist();
       render();
-      toast('Task completed and removed from your planner.');
+      toast('Task completed and moved to your archive.');
       undoCompletion={id:a.id, owner:globalThis.studyAccount.user?.id};
       $('#undo-completion').hidden=false;
       clearTimeout(toast.timeout);
@@ -110,7 +164,22 @@ document.addEventListener('change',e=>{if(e.target.dataset.complete){const a=ass
         undoCompletion=undefined;
         $('#toast').classList.remove('visible');
       },8000);}}if(e.target.id==='budget'){const n=Number(e.target.value);if(!Number.isFinite(n)||n<15||n>480){toast('Choose between 15 and 480 minutes.');e.target.value=budget;return;}budget=n;save('studyflow.budget.v1',budget);render();}if(e.target.id==='session-task'){session.task=e.target.value;save('studyflow.session.v1',session);}});
-document.addEventListener('input',e=>{if(e.target.id==='notes')notes=e.target.value;});
+document.addEventListener('input', event => {
+  if (event.target.id === 'notes') notes = event.target.value;
+  if (event.target.id === 'archive-search') {
+    archiveQuery = event.target.value;
+    $('#archive-results').innerHTML = archiveResults();
+  }
+});
+$('#studyflow-theme').value = currentTheme;
+$('#studyflow-theme').addEventListener('change', event => {
+  const theme = event.target.value;
+  if (!themes.includes(theme)) return;
+  currentTheme = theme;
+  document.documentElement.dataset.theme = theme;
+  try { localStorage.setItem('studyflow.theme.v1', JSON.stringify(theme)); }
+  catch { toast('Theme changed for this visit.'); }
+});
 document.addEventListener('click',e=>{const target=e.target.closest('[data-action],[data-week]');if(!target)return;if(target.dataset.week){weekOffset+=Number(target.dataset.week);render();return;}switch(target.dataset.action){case 'add':
       openAssignmentEditor();
       break;
@@ -119,11 +188,24 @@ document.addEventListener('click',e=>{const target=e.target.closest('[data-actio
       if(task)openAssignmentEditor(task);
       break;
     }
+    case 'restore-task': {
+      const task=assignments.find(a=>a.id===target.dataset.task&&a.completed);
+      if(task){
+        task.completed=false;
+        delete task.completedOn;
+        persist();
+        render();
+        $('#archive-search').focus();
+        toast('Assignment restored to your planner.');
+      }
+      break;
+    }
     case 'undo-completion': {
       if(!undoCompletion || undoCompletion.owner!==globalThis.studyAccount.user?.id)break;
       const task=assignments.find(a=>a.id===undoCompletion.id&&a.completed);
       if(task){
         task.completed=false;
+        delete task.completedOn;
         persist();
         render();
         toast('Assignment restored.');

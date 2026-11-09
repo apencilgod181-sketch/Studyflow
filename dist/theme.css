@@ -38,6 +38,70 @@ h1 { font-size: clamp(1.85rem, 3.2vw, 2.65rem); font-weight: 650; letter-spacing
 main:focus { outline: none; }
 .page-heading > .button { flex-shrink: 0; white-space: nowrap; }
 .task-edit { flex-shrink: 0; }
+.sidebar { overflow-y: auto; }
+.theme-picker { display: flex; align-items: center; gap: 8px; margin: 0 0 0 auto; }
+.theme-picker select { width: auto; padding: 6px 8px; font-size: 12px; }
+.topbar { gap: 16px; }
+.archive-results { margin-top: 20px; }
+.archive-row { align-items: center; }
+.progress-metrics { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.progress-metrics div { padding: 12px; border-radius: 10px; background: var(--metric-bg, #edf3e9); }
+.progress-metrics strong { display: block; font-size: 23px; }
+.progress-metrics span { display: block; margin-top: 4px; color: var(--muted); font-size: 11px; }
+.progress-snapshot .muted { overflow-wrap: anywhere; }
+
+:root[data-theme="ocean"] {
+  --green: #205369;
+  --muted: #496474;
+  --line: #d8e4eb;
+  --metric-bg: #e8f2f6;
+  color: #183746;
+  background: #f3f8fa;
+}
+[data-theme="ocean"] body { background: radial-gradient(ellipse at 100% 0%, #dceff5, transparent 42rem); }
+[data-theme="ocean"] :is(.sidebar, .topbar) { background: #f7fbfc; }
+[data-theme="ocean"] :is(.sidebar-bottom, .focus-card, .notice, .day.today) { background: #e8f2f6; }
+[data-theme="ocean"] .hero { background: linear-gradient(110deg, #dbeff4, #e8f5f7 70%, #cee6ee); }
+[data-theme="ocean"] .brand-icon { background: linear-gradient(145deg, #387f9c, #205369); }
+[data-theme="ocean"] nav a.active { background: #e0eff5; border-color: #cee4ed; color: #205369; }
+[data-theme="ocean"] :is(.hero p, .workspace, .eyebrow, .notice) { color: #3e6477; }
+[data-theme="ocean"] .ring { background: conic-gradient(#4d8da4 calc(var(--p)*1%), #e4eef2 0); }
+
+:root[data-theme="midnight"] {
+  color-scheme: dark;
+  --green: #a0c3ef;
+  --muted: #bcc9db;
+  --line: #3b4b60;
+  --metric-bg: #293c54;
+  color: #ecf3fc;
+  background: #131d2a;
+}
+[data-theme="midnight"] body { background: radial-gradient(ellipse at 100% 0%, #22374f, transparent 42rem); }
+[data-theme="midnight"] :is(.sidebar, .topbar, dialog, .ring:before, .auth-divider span) { background: #1b2839; }
+[data-theme="midnight"] :is(.card, .day, .week-task, .auth-paper, .sidebar-bottom, .notice, .recovery-code, .icon-button, .avatar, .focus-icon) {
+  background: #223246;
+  border-color: var(--line);
+  color: inherit;
+}
+[data-theme="midnight"] :is(.day.today, .focus-card, .sidebar-bottom, .notice) { background: #293c54; }
+[data-theme="midnight"] :is(input:not([type=checkbox]):not([type=radio]), select, textarea) { background: #192738; color: #ecf3fc; border-color: #50627a; }
+[data-theme="midnight"] .hero { background: linear-gradient(115deg, #263d57, #29394e 70%, #294459); border-color: var(--line); }
+[data-theme="midnight"] .hero::after { background-image: radial-gradient(circle, #9ab5d666 1px, transparent 1.5px); }
+[data-theme="midnight"] :is(.workspace, .eyebrow, .hero p, .topbar, nav a, label, .task-meta, .task-time, .day-label, .week-task small, .grade-result small, .sidebar-bottom .local-badge, .empty, footer, .timer-status, .focus-card p, .progress-card p, .ring small, .below-note, .plan-bottom, .auth-story > p) { color: var(--muted); }
+[data-theme="midnight"] nav a:is(:hover, .active) { background: #2e4560; border-color: #456180; color: #e5f0ff; }
+[data-theme="midnight"] :is(.button, .button:not(:disabled):hover) { background: #a0c3ef; color: #142438; }
+[data-theme="midnight"] :is(.button.secondary, .focus-card .button) { background: #293c54; color: #e5f0ff; border-color: #50627a; }
+[data-theme="midnight"] :is(.subject, .pill, .task:nth-child(n) .subject) { background: #334962; color: #dceaff; }
+[data-theme="midnight"] :is(.task, .question) { border-color: var(--line); }
+[data-theme="midnight"] .ring { background: conic-gradient(#8fb7e3 calc(var(--p)*1%), #354861 0); box-shadow: 0 0 0 5px #27384d; }
+[data-theme="midnight"] .task input:checked::after { color: #142438; }
+[data-theme="midnight"] .form-error { color: #ffacaa; }
+.progress-snapshot a:focus-visible, .theme-picker select:focus-visible { outline-color: var(--green); }
+@media (max-width: 600px) {
+  .topbar { gap: 8px; }
+  .theme-picker { gap: 4px; font-size: 11px; }
+  .theme-picker select { padding-inline: 4px; font-size: 11px; }
+}
 .week-task .task-edit { margin-top: 4px; }
 #undo-completion {
   margin-inline-start: 8px;
