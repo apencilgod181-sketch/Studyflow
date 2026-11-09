@@ -56,6 +56,9 @@ main:focus { outline: none; }
 .dashboard-overview { margin-bottom: 24px; }
 .journal-history { margin-top: 24px; }
 .setup-card { max-width: 760px; }
+.setup-details { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 230px), 1fr)); gap: 10px 18px; }
+.setup-details input, .setup-details select { width: 100%; }
+.setup-details #setup-time-help { margin-top: 6px; }
 .setup-subjects { min-width: 0; margin: 20px 0; padding: 14px; border: 1px solid var(--line); border-radius: 12px; }
 .setup-subjects legend { padding: 0 5px; font-weight: 650; }
 .setup-subjects p { margin-top: 0; }

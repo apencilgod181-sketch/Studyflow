@@ -16,8 +16,13 @@ const submit=first.events.submit[2];await submit({preventDefault(){},target:{id:
 const setupSubmit=first.events.submit[1];
 assert.match(first.run('setupChoices("myp",[])'), /Individuals and societies/);
 assert.match(first.run('setupChoices("ap",[])'), /AP Calculus AB/);
-setupSubmit({preventDefault(){},target:{id:'study-setup-form',data:{programme:'ap',course:['AP Biology'],custom:'Robotics'}}});
+setupSubmit({preventDefault(){},target:{id:'study-setup-form',data:{programme:'ap',course:['AP Biology'],custom:'Robotics',age:'15',level:'Year 10',minutes:'60',goal:'grades'}}});
 assert.match(first.run('dashboard()'), /AP Biology/);
+assert.match(first.run('dashboard()'), /Track and improve my grades/);
+assert.match(first.run('setupPage()'), /value="Year 10"/);
+assert.equal(first.run('setupPreferences().age'),15);
+await first.run('pushPlan()');
+assert.equal(cloud.get(user.id).data.budget,60);
 assert.match(first.run('gradesPage()'), /<option value="Robotics">/);
 const personalSubmit=first.events.submit[0];
 await personalSubmit({preventDefault(){},target:{id:'personal-profile-form',data:{name:'Avery',accent:'#912465',tint:'#ddddff'}}});
