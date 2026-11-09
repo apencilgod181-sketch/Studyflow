@@ -22,7 +22,7 @@ npm run build
 - Daily time budget allocates up to 40-minute blocks ordered by due date and priority. Checking a task completes the whole assignment.
 - Assignments and tests with time estimates, priorities, due dates, completion tracking, and a weekly view.
 - Optional 25-minute focus timer with pause, resume, finish, and refresh recovery. Timers stay on the device.
-- Practice-question prototype creates sentence-based recall prompts locally. No AI service is connected, and notes remain in memory.
+- Signed-in students can upload a PDF, DOCX, TXT, or Markdown file up to 2 MB to generate a five-question multiple-choice test with scoring and explanations. Cloudflare Workers AI processes uploads on demand. StudyFlow does not save the document or generated test. Long files use the first 10,000 characters of readable text. The quick recall tool still processes pasted notes in the browser.
 - Subject grades with earned/possible points, assessment dates, editable results, weights, history, and weighted percentage averages. These are personal estimates, not official school grades.
 - Email/password sign-up and login; Google Identity Services sign-up/login; session logout and permanent account deletion.
 - Signed-in assignments, grades, completion progress, and daily budget sync to Cloudflare D1. Guest records stay separate until explicitly imported from the account page.
