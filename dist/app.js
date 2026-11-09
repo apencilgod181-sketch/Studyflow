@@ -282,7 +282,17 @@ document.addEventListener('click',e=>{const target=e.target.closest('[data-actio
       break;
     case 'questions':{const sentences=notes.split(/[.!?\n]+/).map(s=>s.trim()).filter(s=>s.split(/\s+/).length>=5);if(!sentences.length){$('#practice-error').textContent='Add a sentence with at least 5 words to create a demo question.';return;}questions=sentences.slice(0,5).map(sentence=>{const words=sentence.split(/\s+/);const index=words.reduce((best,w,i)=>w.replace(/[^a-zA-Z]/g,'').length>words[best].replace(/[^a-zA-Z]/g,'').length?i:best,0);words[index]='________';return {prompt:'Fill in the missing word: '+words.join(' ')+'.',answer:sentence+'.'};});render();break;}}});
 let pageEntrance;
+const navToggle = $('#nav-toggle');
+navToggle?.addEventListener('click', () => {
+  navToggle.setAttribute('aria-expanded', String(navToggle.getAttribute('aria-expanded') !== 'true'));
+});
+$('#main-nav')?.addEventListener('click', event => {
+  if (!event.target.closest('a')) return;
+  if (navToggle?.getAttribute('aria-expanded') === 'true') $('#main').focus();
+  navToggle?.setAttribute('aria-expanded', 'false');
+});
 window.addEventListener('hashchange', () => {
+  navToggle?.setAttribute('aria-expanded', 'false');
   const previousPage = page;
   render();
   const main = $('#main');

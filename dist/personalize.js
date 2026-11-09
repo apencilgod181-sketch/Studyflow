@@ -115,20 +115,37 @@ async function resizeStudyPicture(file, maxDimension) {
   if (!['image/jpeg','image/png','image/webp'].includes(file.type) || file.size > 8 * 1024 * 1024) {
     throw new Error('Choose a JPEG, PNG, or WebP picture up to 8 MB.');
   }
-  let bitmap;
-  try { bitmap = await createImageBitmap(file); }
-  catch { throw new Error('This picture could not be opened. Try another file.'); }
+  let picture;
+  let objectUrl;
   try {
-    const scale = Math.min(1, maxDimension / Math.max(bitmap.width, bitmap.height));
+    if (typeof createImageBitmap === 'function') {
+      try { picture = await createImageBitmap(file); }
+      catch { /* Use the browser's image decoder if bitmap decoding fails. */ }
+    }
+    if (!picture) {
+      objectUrl = URL.createObjectURL(file);
+      picture = await new Promise((resolve, reject) => {
+        const image = new Image();
+        image.onload = () => resolve(image);
+        image.onerror = () => reject(new Error('This picture could not be opened. Try another file.'));
+        image.src = objectUrl;
+      });
+    }
+    const width = picture.naturalWidth || picture.width;
+    const height = picture.naturalHeight || picture.height;
+    const scale = Math.min(1, maxDimension / Math.max(width, height));
     const canvas = document.createElement('canvas');
-    canvas.width = Math.max(1, Math.round(bitmap.width * scale));
-    canvas.height = Math.max(1, Math.round(bitmap.height * scale));
+    canvas.width = Math.max(1, Math.round(width * scale));
+    canvas.height = Math.max(1, Math.round(height * scale));
     const context = canvas.getContext('2d');
     context.fillStyle = '#ffffff';
     context.fillRect(0, 0, canvas.width, canvas.height);
-    context.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+    context.drawImage(picture, 0, 0, canvas.width, canvas.height);
     return canvas.toDataURL('image/jpeg', .72);
-  } finally { bitmap.close(); }
+  } finally {
+    picture?.close?.();
+    if (objectUrl) URL.revokeObjectURL(objectUrl);
+  }
 }
 
 document.addEventListener('submit', async event => {
