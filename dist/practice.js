@@ -7,7 +7,7 @@ function aiPractice() {
     practiceOwner = owner;
     practiceUpload = {};
   }
-  const title = heading('PRACTICE TEST', 'Turn your work into a practice test.', 'Upload a document and answer five AI-generated questions about it.');
+  const title = heading('PRACTICE TEST', 'Turn your work into a practice test.', 'Choose a document, then click Generate practice test when you’re ready.');
   if (location.hostname?.endsWith('.chatgpt.site')) {
     return title + '<section class="card"><a class="button" href="https://studyflow.apencilgod181.workers.dev/#practice">Open AI practice tests ↗</a></section>';
   }
@@ -18,16 +18,16 @@ function aiPractice() {
   return title + `<div class="practice-layout">
     <section class="card">
       <h2>Upload your work</h2>
-      <form id="practice-upload">
+      <div>
         <label>Study document
-          <input type="file" name="work" accept=".pdf,.docx,.txt,.md" aria-describedby="practice-file-help" ${busy?'disabled':''}>
+          <input type="file" id="practice-file" accept=".pdf,.docx,.txt,.md" aria-describedby="practice-file-help" ${busy?'disabled':''}>
         </label>
         <p class="muted" id="practice-file-help">PDF, Word (.docx), TXT, or Markdown, up to 2 MB. For long documents, upload the section you want to study.</p>
-        <p class="muted">${file?'Selected: '+esc(file.name):'Choose notes, a worksheet, or a study guide.'}</p>
+        <p class="muted" id="practice-file-status" role="status">${file?'Ready: '+esc(file.name):'Choose notes, a worksheet, or a study guide.'}</p>
         <p class="muted">Your document goes to Cloudflare AI when you generate a test. StudyFlow doesn’t save the document or test. Remove personal details before uploading.</p>
-        <button class="button" type="submit" ${busy?'disabled':''}>${busy?'Creating your test…':'Generate practice test ✧'}</button>
-        <p class="form-error" role="alert">${esc(error||'')}</p>
-      </form>
+        <button class="button" type="button" id="practice-generate" ${busy||!file?'disabled':''}>${busy?'Creating your test…':'Generate practice test ✧'}</button>
+        <p class="form-error" id="practice-upload-error" role="alert">${esc(error||'')}</p>
+      </div>
     </section>
     <section class="card">
       <h2>Your practice test</h2>
@@ -54,17 +54,20 @@ function practiceQuiz(questions, answers, graded) {
 
 document.addEventListener('change', event => {
   const input = event.target;
-  if (input.form?.id === 'practice-upload') {
-    practiceUpload.file = input.files[0];
+  if (input.id === 'practice-file') {
+    const file = input.files[0];
+    practiceUpload.file = file;
     practiceUpload.error = '';
-    render();
+    $('#practice-file-status').textContent = file ? 'Ready: ' + file.name : 'Choose notes, a worksheet, or a study guide.';
+    $('#practice-upload-error').textContent = '';
+    $('#practice-generate').disabled = !file;
   }
   if (input.form?.id === 'practice-quiz') {
     practiceUpload.answers[Number(input.name.slice(7))] = Number(input.value);
   }
 });
 
-document.addEventListener('submit', async event => {
+document.addEventListener('submit', event => {
   if (event.target.id === 'practice-quiz') {
     event.preventDefault();
     practiceUpload.graded = true;
@@ -72,8 +75,9 @@ document.addEventListener('submit', async event => {
     $('#practice-quiz').scrollIntoView({block:'start'});
     return;
   }
-  if (event.target.id !== 'practice-upload') return;
-  event.preventDefault();
+});
+
+async function generatePracticeTest() {
   const upload = practiceUpload;
   if (upload.busy) return;
   const file = upload.file;
@@ -101,9 +105,13 @@ document.addEventListener('submit', async event => {
     upload.busy = false;
     if (page === 'practice' && upload === practiceUpload) render();
   }
-});
+}
 
 document.addEventListener('click', event => {
+  if (event.target.id === 'practice-generate') {
+    void generatePracticeTest();
+    return;
+  }
   if (event.target.id !== 'practice-retake') return;
   practiceUpload.answers = [];
   practiceUpload.graded = false;
