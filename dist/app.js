@@ -35,7 +35,7 @@ function taskHTML(a,block=false){return `<div class="task ${a.completed?'done':'
 function dashboard(){
  const date=new Date().toLocaleDateString(undefined,{weekday:'long',month:'long',day:'numeric'});const hour=new Date().getHours();const greeting=hour<12?'Good morning':hour<18?'Good afternoon':'Good evening';
  dailyPlan=plan();const items=showAll?sorted().filter(a=>!a.completed):dailyPlan;const completed=assignments.filter(a=>a.completed).length;const total=assignments.length;const ratio=total?Math.round(completed/total*100):0;const minutes=dailyPlan.filter(a=>!a.completed).reduce((sum,a)=>sum+a.blockMinutes,0);
- return heading(date.toUpperCase(),`${greeting}, you’ve got this <span style="font-size:24px;color:#8a9d75">☀</span>`,'A little structure. A lot more headspace.',addButton)+`<section class="hero"><div class="hero-text"><p class="eyebrow">ONE THING AT A TIME</p><h2>Make room for a good day.</h2><p>Your plan is here to help you move forward.<br>Take it one task, one small win at a time.</p></div><div class="hero-art" aria-hidden="true"><span class="spark">✧</span><div class="leaf"></div><div class="leaf two"></div><div class="book"></div></div></section><div class="dashboard-grid"><div><section class="card"><div class="section-head"><div><h2>${showAll?'All assignments':'Today’s study plan'}</h2><p class="muted">${showAll?'Everything in one place. You can take it from here.':`${dailyPlan.filter(a=>!a.completed).length} study blocks · ${minutes} min of focused time`}</p></div><span class="pill">${items.length} tasks</span></div><div class="task-list">${items.length?items.map(a=>taskHTML(a,!showAll)).join(''):'<div class="empty">A little breathing room. You’re all caught up!<br>Add an assignment whenever you’re ready.</div>'}</div><div class="plan-bottom"><span>Go at your own pace.</span><button class="text-button" data-action="toggle-all">${showAll?'Back to today':'All assignments'} →</button></div><label class="budget">Time available today <input id="budget" type="number" min="15" max="480" step="5" value="${budget}" aria-label="Minutes available to study today"> minutes</label><p class="muted">Planned by due date, then priority. Longer tasks get a manageable study block. Checking a task removes it from your planner and counts it toward your progress.</p></section><div class="below-note"><span>✧</span><div>A little progress is still progress.<br>You’re building something good, one day at a time.</div></div></div><div class="right-stack"><section class="card progress-card"><h2>Your progress</h2><div class="ring" style="--p:${ratio}" role="img" aria-label="${completed} of ${total} assignments complete"><div><strong>${completed}<span style="font-size:16px;color:#9aa58f"> / ${total}</span></strong><small>tasks complete</small></div></div><p>${completed?'Look at you, moving forward.':'Every little step counts.'}</p></section>${progressSnapshot()}<section class="card focus-card"><div class="focus-icon" aria-hidden="true">◷</div><h2>A little focus goes a long way.</h2><p>One task. A quiet moment.<br>Try a 25-minute study session.</p><a href="#session" class="button">Let’s focus <span>↗</span></a></section></div></div>`;
+ return heading(date.toUpperCase(),`${greeting}, you’ve got this <span style="font-size:24px;color:#8a9d75">☀</span>`,'A little structure. A lot more headspace.',addButton)+dashboardOverview(typeof grades === 'undefined' ? [] : grades)+`<div class="dashboard-grid"><div><section class="card"><div class="section-head"><div><h2>${showAll?'All assignments':'Today’s study plan'}</h2><p class="muted">${showAll?'Everything in one place. You can take it from here.':`${dailyPlan.filter(a=>!a.completed).length} study blocks · ${minutes} min of focused time`}</p></div><span class="pill">${items.length} tasks</span></div><div class="task-list">${items.length?items.map(a=>taskHTML(a,!showAll)).join(''):'<div class="empty">A little breathing room. You’re all caught up!<br>Add an assignment whenever you’re ready.</div>'}</div><div class="plan-bottom"><span>Go at your own pace.</span><button class="text-button" data-action="toggle-all">${showAll?'Back to today':'All assignments'} →</button></div><label class="budget">Time available today <input id="budget" type="number" min="15" max="480" step="5" value="${budget}" aria-label="Minutes available to study today"> minutes</label><p class="muted">Planned by due date, then priority. Longer tasks get a manageable study block. Checking a task removes it from your planner and counts it toward your progress.</p></section><div class="below-note"><span>✧</span><div>A little progress is still progress.<br>You’re building something good, one day at a time.</div></div></div><div class="right-stack"><section class="card progress-card"><h2>Your progress</h2><div class="ring" style="--p:${ratio}" role="img" aria-label="${completed} of ${total} assignments complete"><div><strong>${completed}<span style="font-size:16px;color:#9aa58f"> / ${total}</span></strong><small>tasks complete</small></div></div><p>${completed?'Look at you, moving forward.':'Every little step counts.'}</p></section>${progressSnapshot()}<section class="card focus-card"><div class="focus-icon" aria-hidden="true">◷</div><h2>A little focus goes a long way.</h2><p>One task. A quiet moment.<br>Try a 25-minute study session.</p><a href="#session" class="button">Let’s focus <span>↗</span></a></section></div></div>`;
 }
 function weekly(){const start=new Date();start.setDate(start.getDate()-((start.getDay()+6)%7)+weekOffset*7);const days=Array.from({length:7},(_,i)=>{const d=new Date(start);d.setDate(d.getDate()+i);return d;});const keys=days.map(dateKey);const tasks=sorted().filter(a=>!a.completed);const earlier=tasks.filter(a=>a.due<keys[0]);return heading('THE BIG PICTURE','Your week, with a little breathing room.','See what’s coming. Make a little space for it.',addButton)+`<section><div class="section-head"><h2>${days[0].toLocaleDateString(undefined,{month:'short',day:'numeric'})} – ${days[6].toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'})}</h2><div class="week-toolbar"><button class="icon-button" data-week="-1" aria-label="Previous week">‹</button><button class="text-button" data-action="this-week">This week</button><button class="icon-button" data-week="1" aria-label="Next week">›</button></div></div><div class="week-grid">${days.map((d,i)=>`<section class="day ${keys[i]===today?'today':''}"><div class="day-label">${d.toLocaleDateString(undefined,{weekday:'short'})}${keys[i]===today?' · Today':''}</div><div class="day-number">${d.getDate()}</div>${tasks.filter(a=>a.due===keys[i]).map(a=>`<div class="week-task ${a.completed?'done':''}"><span class="subject">${esc(a.subject)}</span><p>${esc(a.name)}</p><small>${a.type==='Test'?'Test · ':''}${a.minutes} min</small><label style="font-size:10px;display:flex;align-items:center;margin:8px 0 0"><input style="width:14px" type="checkbox" data-complete="${esc(a.id)}" ${a.completed?'checked':''}> Complete</label><button class="text-button task-edit" type="button" data-action="edit" data-task="${esc(a.id)}" aria-label="Edit ${esc(a.name)}">Edit</button></div>`).join('')||'<p class="muted">Room to breathe.</p>'}</section>`).join('')}</div>${earlier.length?`<section class="card" style="margin-top:22px"><h2>Carry forward</h2><p class="muted">Earlier deadlines, ready for a fresh start.</p>${earlier.map(a=>taskHTML(a)).join('')}</section>`:''}</section>`;}
 function remaining(){return session.status==='running'?Math.max(0,Math.ceil((session.endsAt-Date.now())/1000)):session.remaining;}
@@ -72,6 +72,55 @@ function archivePage() {
       <input type="search" id="archive-search" value="${esc(archiveQuery)}" placeholder="Search completed tasks">
       <div id="archive-results" class="archive-results" aria-live="polite">${archiveResults()}</div>
     </section>`;
+}
+
+function weightedGradeAverage(results) {
+  if (!results.length) return null;
+  const totalWeight = results.reduce((sum, grade) => sum + grade.weight, 0);
+  return results.reduce((sum, grade) => sum + grade.score / grade.max * 100 * grade.weight, 0) / totalWeight;
+}
+
+function dashboardOverview(results) {
+  const completed = assignments.filter(task => task.completed).length;
+  const active = assignments.length - completed;
+  const average = weightedGradeAverage(results);
+  const subjects = [...new Set([...assignments, ...results].map(item => item.subject))].sort();
+  const recent = [...results].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 4);
+  return `<section class="card dashboard-overview" aria-labelledby="overview-title">
+    <div class="section-head">
+      <div><p class="eyebrow">THE BIG PICTURE</p><h2 id="overview-title">Your progress at a glance</h2></div>
+      <a href="#grades" class="button secondary small">View grades →</a>
+    </div>
+    <div class="overview-metrics progress-metrics">
+      <div><strong>${average === null ? '—' : average.toFixed(1) + '%'}</strong><span>Weighted grade average</span></div>
+      <div><strong>${results.length}</strong><span>Recorded grades</span></div>
+      <div><strong>${completed} / ${assignments.length}</strong><span>Tasks completed</span></div>
+      <div><strong>${active}</strong><span>Open tasks</span></div>
+    </div>
+    <div class="overview-details">
+      <section>
+        <h3>Progress by subject</h3>
+        ${subjects.length ? `<table class="overview-table">
+          <thead><tr><th scope="col">Subject</th><th scope="col">Average</th><th scope="col">Tasks done</th></tr></thead>
+          <tbody>${subjects.map(subject => {
+            const tasks = assignments.filter(task => task.subject === subject);
+            const gradesForSubject = results.filter(grade => grade.subject === subject);
+            const subjectAverage = weightedGradeAverage(gradesForSubject);
+            return `<tr><th scope="row">${esc(subject)}</th><td>${subjectAverage === null ? '—' : subjectAverage.toFixed(1) + '%'}</td><td>${tasks.length ? tasks.filter(task => task.completed).length + ' / ' + tasks.length : '—'}</td></tr>`;
+          }).join('')}</tbody>
+        </table>` : '<p class="muted">Add a task or record a grade to see your subjects here.</p>'}
+      </section>
+      <section>
+        <h3>Recent grades</h3>
+        ${recent.length ? `<ul class="overview-recent">${recent.map(grade => `<li>
+          <div><strong>${esc(grade.name)}</strong><span class="muted">${esc(grade.subject)} · ${esc(grade.date)}</span></div>
+          <strong>${(grade.score / grade.max * 100).toFixed(1)}%</strong>
+        </li>`).join('')}</ul>` : '<p class="muted">Your latest results will appear here.</p>'}
+        <a href="#grades" class="text-button">Record a grade →</a>
+      </section>
+    </div>
+    <p class="muted">Grade averages use the weights you enter. Completed totals include tasks in your archive.</p>
+  </section>`;
 }
 
 function progressSnapshot() {

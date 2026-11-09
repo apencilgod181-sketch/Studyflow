@@ -14,6 +14,8 @@ first.run("assignments=[{id:'homework',name:'Finish chapter',subject:'English',d
 assert.equal(first.store.get('studyflow.assignments.v1'),guest,'Guest data must stay separate');
 const submit=first.events.submit[0];await submit({preventDefault(){},target:{id:'grade-form',data:{subject:'English',name:'Quiz',score:'18',max:'20',date:'2026-11-08',weight:'1'}}});await first.run('pushPlan()');assert.equal(cloud.get(user.id).data.grades[0].score,18);
 const second=await device();await second.run(`enterAccount(${JSON.stringify(user)})`);assert.equal(second.run('grades.length'),1);assert.equal(second.run('assignments[0].name'),'Finish chapter');assert.ok(second.run('gradesPage().includes("90.0")'));
+assert.match(second.run('dashboard()'), /<strong>90\.0%<\/strong><span>Weighted grade average/);
+assert.match(second.run('dashboard()'), /<th scope="row">English<\/th><td>90\.0%<\/td><td>0 \/ 1<\/td>/);
 first.run('assignments[0].completed=true;persist()');await first.run('pushPlan()');second.run('budget=45;save("studyflow.budget.v1",budget)');await second.run('pushPlan()');assert.equal(second.run('sync.conflict'),true);assert.equal(cloud.get(user.id).data.assignments[0].completed,true,'Stale device cannot silently overwrite');
 const reloaded=await device(second.store);await reloaded.run(`enterAccount(${JSON.stringify(user)})`);assert.equal(reloaded.run('sync.conflict'),true);
 const reloadedAgain=await device(second.store);await reloadedAgain.run(`enterAccount(${JSON.stringify(user)})`);assert.equal(reloadedAgain.run('sync.conflict'),true);
