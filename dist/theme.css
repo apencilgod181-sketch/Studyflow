@@ -11,7 +11,7 @@ body {
   background: radial-gradient(ellipse at 100% 0%, #e9efe2 0%, transparent 42rem);
 }
 
-.sidebar { background: #fbfcf9; }
+.sidebar { background: #fbfcf9; overflow-y: auto; }
 .topbar { background: #f9fbf6; }
 .brand-icon {
   background: linear-gradient(145deg, #467654, #254a38);
@@ -19,13 +19,49 @@ body {
 }
 .workspace, .eyebrow { color: #5d755e; }
 .sidebar-bottom {
+  margin-top: auto;
   background: linear-gradient(145deg, #eaf1e5, #f5f7ef);
-  border: 1px solid #e0e9da;
+  border: 1px solid var(--line);
   border-radius: 14px;
-  padding: 16px;
+  padding: 0;
 }
-.sidebar-bottom .little-plant { margin-bottom: 6px; }
-.sidebar-bottom .local-badge { margin-top: 14px; padding-top: 12px; color: #5d755e; }
+.sidebar nav { margin-bottom: 16px; }
+.sidebar-account, .account-profile, .profile-preview {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.sidebar-account { padding: 12px; border-radius: inherit; }
+.sidebar-account:hover, .sidebar-account[aria-current="page"] { background: color-mix(in srgb, currentColor 8%, transparent); }
+.sidebar-account > span:last-child { min-width: 0; }
+.sidebar-account small {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--muted);
+  font-size: 11px;
+  margin-top: 3px;
+}
+.profile-avatar {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 36px;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  overflow: hidden;
+  background: #e1eee3;
+  color: #285440;
+  font-size: 14px;
+  font-weight: 700;
+}
+.profile-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.account-profile { margin-bottom: 20px; }
+.account-profile .muted { margin: 4px 0; }
+.account-profile h2, .profile-preview strong { overflow-wrap: anywhere; }
+.account-profile .profile-avatar, .profile-preview .profile-avatar { width: 56px; font-size: 22px; }
+.profile-preview { margin-top: 16px; }
 nav a {
   color: #52665a;
   border: 1px solid transparent;
@@ -249,11 +285,9 @@ main:focus { outline: none; }
   .hero:hover .hero-art, .button:not(:disabled):is(:hover, :active) { transform: none; }
 }
 
-@media (max-width: 850px) {
-  .sidebar-bottom { padding: 12px; }
-}
-
 @media (max-width: 600px) {
+  .sidebar-bottom { display: block; }
+  .sidebar nav { margin-bottom: 8px; }
   .hero { min-height: 158px; }
   .card { border-radius: 14px; }
 }

@@ -6,6 +6,7 @@ function personalProfile() {
   const saved = read(personalKey(), {});
   return {
     name: saved.name || '',
+    avatar: isProfilePhoto(saved.avatar) ? saved.avatar : '',
     accent: /^#[0-9a-f]{6}$/i.test(saved.accent) ? saved.accent : '#346b50',
     tint: /^#[0-9a-f]{6}$/i.test(saved.tint) ? saved.tint : '#b7d5b5',
     logs: Array.isArray(saved.logs) ? saved.logs : []
@@ -14,6 +15,24 @@ function personalProfile() {
 
 function preferredName() {
   return personalProfile().name || globalThis.studyAccount.user?.name || '';
+}
+
+function isProfilePhoto(picture) {
+  return /^data:image\/jpeg;base64,[a-z0-9+/=]+$/i.test(picture || '');
+}
+
+function profileAvatar() {
+  const {avatar} = personalProfile();
+  const initial = Array.from(preferredName().trim())[0] || 'S';
+  return `<span class="profile-avatar" aria-hidden="true">${avatar ? `<img src="${esc(avatar)}" alt="">` : esc(initial.toUpperCase())}</span>`;
+}
+
+function accountProfileCard() {
+  const name = preferredName() || 'Guest workspace';
+  return `<section class="card account-profile">
+    ${profileAvatar()}
+    <div><h2>${esc(name)}</h2><p class="muted">Your display name and profile picture</p><a class="text-button" href="#personalize">Edit profile →</a></div>
+  </section>`;
 }
 
 function applyPersonalColors() {
@@ -48,12 +67,17 @@ function personalizePage() {
       <section class="card">
         <h2>Profile and theme</h2>
         <form id="personal-profile-form">
+          <div class="profile-preview">${profileAvatar()}<strong>${esc(preferredName() || 'Guest workspace')}</strong></div>
+          <label>Profile picture<input name="avatar" type="file" accept="image/jpeg,image/png,image/webp"></label>
+          ${profile.avatar ? '<label class="journal-check"><input type="checkbox" name="remove-avatar"> Remove current picture</label>' : ''}
+          <p class="muted">JPEG, PNG, or WebP up to 8 MB. Your display name and picture stay in this browser.</p>
           <label>Preferred name<input name="name" maxlength="60" value="${esc(profile.name)}" placeholder="Name used on your dashboard"></label>
           <div class="form-grid">
             <label>Accent color<input name="accent" type="color" value="${profile.accent}"></label>
             <label>Background tint<input name="tint" type="color" value="${profile.tint}"></label>
           </div>
-          <p class="muted">Saving applies your Custom theme. You can switch themes in the header.</p>
+          <p class="muted">Changing a color applies your Custom theme. You can switch themes in the header.</p>
+          <p class="form-error" role="alert" id="profile-error"></p>
           <button class="button" type="submit">Save profile and theme</button>
           <button class="text-button delete-control" type="button" data-reset-personal>Reset name and colors</button>
         </form>
@@ -87,7 +111,7 @@ function personalizePage() {
     </section>`;
 }
 
-async function resizeJournalPicture(file) {
+async function resizeStudyPicture(file, maxDimension) {
   if (!['image/jpeg','image/png','image/webp'].includes(file.type) || file.size > 8 * 1024 * 1024) {
     throw new Error('Choose a JPEG, PNG, or WebP picture up to 8 MB.');
   }
@@ -95,7 +119,7 @@ async function resizeJournalPicture(file) {
   try { bitmap = await createImageBitmap(file); }
   catch { throw new Error('This picture could not be opened. Try another file.'); }
   try {
-    const scale = Math.min(1, 800 / Math.max(bitmap.width, bitmap.height));
+    const scale = Math.min(1, maxDimension / Math.max(bitmap.width, bitmap.height));
     const canvas = document.createElement('canvas');
     canvas.width = Math.max(1, Math.round(bitmap.width * scale));
     canvas.height = Math.max(1, Math.round(bitmap.height * scale));
@@ -112,17 +136,33 @@ document.addEventListener('submit', async event => {
   if (form.id === 'personal-profile-form') {
     event.preventDefault();
     const data = new FormData(form);
+    const key = personalKey();
+    const submit = form.querySelector('[type=submit]');
+    if (submit.disabled) return;
+    submit.disabled = true;
     try {
-      localStorage.setItem(personalKey(), JSON.stringify({
-        ...personalProfile(), name:data.get('name').trim(), accent:data.get('accent'), tint:data.get('tint')
+      const file = data.get('avatar');
+      const newPicture = file?.size ? await resizeStudyPicture(file, 256) : undefined;
+      if (key !== personalKey()) return;
+      const profile = personalProfile();
+      const accent = data.get('accent');
+      const tint = data.get('tint');
+      localStorage.setItem(key, JSON.stringify({
+        ...profile, name:data.get('name').trim(), accent, tint,
+        avatar:newPicture ?? (data.has('remove-avatar') ? '' : profile.avatar)
       }));
-      currentTheme = 'custom';
-      localStorage.setItem('studyflow.theme.v1', JSON.stringify(currentTheme));
-      document.documentElement.dataset.theme = currentTheme;
-      $('#studyflow-theme').value = currentTheme;
+      if (accent !== profile.accent || tint !== profile.tint) {
+        currentTheme = 'custom';
+        localStorage.setItem('studyflow.theme.v1', JSON.stringify(currentTheme));
+        document.documentElement.dataset.theme = currentTheme;
+        $('#studyflow-theme').value = currentTheme;
+      }
       render();
       toast('Profile and theme saved.');
-    } catch { toast('Your browser could not save these preferences.'); }
+    } catch (error) {
+      form.querySelector('#profile-error').textContent = error.name === 'QuotaExceededError'
+        ? 'Browser storage is full. Free up some space and try again.' : error.message;
+    } finally { submit.disabled = false; }
     return;
   }
   if (form.id !== 'journal-form') return;
@@ -137,7 +177,7 @@ document.addEventListener('submit', async event => {
     const title = data.get('title').trim();
     if (!title) throw new Error('Enter a title for your progress log.');
     const file = data.get('picture');
-    const newPicture = file?.size ? await resizeJournalPicture(file) : undefined;
+    const newPicture = file?.size ? await resizeStudyPicture(file, 800) : undefined;
     if (key !== personalKey()) throw new Error('Your account changed. Open the journal again.');
     const profile = personalProfile();
     const existing = profile.logs.find(entry => entry.id === editedId);
@@ -163,7 +203,8 @@ document.addEventListener('click', event => {
   if (event.target.closest('[data-reset-personal]')) {
     if (!confirm('Reset your preferred name and custom colors?')) return;
     try {
-      localStorage.setItem(personalKey(), JSON.stringify({logs:personalProfile().logs}));
+      const {logs, avatar} = personalProfile();
+      localStorage.setItem(personalKey(), JSON.stringify({logs, avatar}));
       localStorage.setItem('studyflow.theme.v1', JSON.stringify('sage'));
       currentTheme = 'sage';
       document.documentElement.dataset.theme = currentTheme;

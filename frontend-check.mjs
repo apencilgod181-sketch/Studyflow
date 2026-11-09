@@ -25,9 +25,23 @@ await first.run('pushPlan()');
 assert.equal(cloud.get(user.id).data.budget,60);
 assert.match(first.run('gradesPage()'), /<option value="Robotics">/);
 const personalSubmit=first.events.submit[0];
-await personalSubmit({preventDefault(){},target:{id:'personal-profile-form',data:{name:'Avery',accent:'#912465',tint:'#ddddff'}}});
+await personalSubmit({preventDefault(){},target:{id:'personal-profile-form',querySelector:()=>({disabled:false}),data:{name:'Avery',accent:'#912465',tint:'#ddddff'}}});
 await personalSubmit({preventDefault(){},target:{id:'journal-form',querySelector:()=>({disabled:false}),data:{title:'First milestone',date:'2026-11-09',note:'Finished my draft'}}});
 assert.match(first.run('dashboard()'), /Avery/);
+assert.match(first.el('#sidebar-account').innerHTML, /My account.*Avery/);
+assert.match(first.run('accountPage()'), /Edit profile/);
+first.run(`globalThis.createImageBitmap=async()=>({width:640,height:480,close(){}});document.createElement=()=>({
+  getContext:()=>({fillRect(){},drawImage(){}}),
+  toDataURL(){return this.width===256&&this.height===192?'data:image/jpeg;base64,YQ==':'';}
+});`);
+const profileForm={id:'personal-profile-form',querySelector:()=>({disabled:false}),data:{name:'Avery',accent:'#912465',tint:'#ddddff',avatar:{size:1024,type:'image/png'}}};
+await personalSubmit({preventDefault(){},target:profileForm});
+assert.match(first.el('#sidebar-account').innerHTML, /<img src="data:image\/jpeg;base64,YQ=="/);
+assert.match(first.run('accountPage()'), /<img src="data:image\/jpeg;base64,YQ=="/);
+profileForm.data.avatar=null;
+profileForm.data['remove-avatar']='on';
+await personalSubmit({preventDefault(){},target:profileForm});
+assert.equal(first.run('personalProfile().avatar'),'');
 assert.match(first.run('dashboard()'), /First milestone/);
 const second=await device();await second.run(`enterAccount(${JSON.stringify(user)})`);assert.equal(second.run('grades.length'),1);assert.equal(second.run('assignments[0].name'),'Finish chapter');assert.ok(second.run('gradesPage().includes("90.0")'));
 assert.match(second.run('dashboard()'), /<strong>90\.0%<\/strong><span>Weighted grade average/);
