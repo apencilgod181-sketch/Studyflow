@@ -12,6 +12,36 @@ assert.equal((await call('signup','POST',{name:'Test',email:'test@example.com',p
 let result=await call('signup','POST',{name:'Test',email:'test@example.com',password});assert.equal(result.status,200);const userId=result.data.user.id;const recovery=result.data.recoveryCode;assert.equal(recovery.length,64);const firstCookie=cookie;
 const stored=sqlite.prepare('SELECT * FROM users WHERE id=?').get(userId);assert.notEqual(stored.password_hash,password);assert.equal(stored.password_hash,await passwordHash(password,stored.salt));assert.notEqual(stored.recovery_hash,recovery);
 assert.equal((await call('me')).data.user.id,userId);
+const schoolFetch = globalThis.fetch;
+const fakeToken = 'synthetic-test-school-token';
+try {
+  globalThis.fetch = async (url, options) => {
+    assert.equal(options.redirect, 'error');
+    assert.equal(options.headers.Authorization, 'Bearer '+fakeToken);
+    if (url.hostname === 'school.instructure.com') {
+      if (url.pathname === '/api/v1/courses') return Response.json([{id:1,name:'Math'}]);
+      assert.equal(url.pathname, '/api/v1/courses/1/assignments');
+      return Response.json([{id:2,name:'Fractions',due_at:'2026-12-01T12:00:00Z',points_possible:10,
+        submission:{score:8,graded_at:'2026-11-08T12:00:00Z',posted_at:'2026-11-08T12:00:00Z',submitted_at:'2026-11-07T12:00:00Z'}}]);
+    }
+    assert.equal(url.hostname, 'classroom.googleapis.com');
+    if (url.pathname === '/v1/courses') return Response.json({courses:[{id:'a',name:'History'}]});
+    if (url.pathname.endsWith('/studentSubmissions')) return Response.json({studentSubmissions:[{courseWorkId:'b',state:'RETURNED',assignedGrade:0,updateTime:'2026-11-09T12:00:00Z'}]});
+    return Response.json({courseWork:[{id:'b',title:'Essay',dueDate:{year:2026,month:12,day:3},maxPoints:10},{id:'c',title:'No deadline'}]});
+  };
+  assert.equal((await call('school-sync','POST',{provider:'canvas',origin:'https://school.instructure.com.evil.test',token:fakeToken})).status,400);
+  const canvas = await call('school-sync','POST',{provider:'canvas',origin:'https://school.instructure.com',token:fakeToken});
+  assert.equal(canvas.status,200);
+  assert.equal(canvas.data.assignments[0].completed,true);
+  assert.equal(canvas.data.grades[0].score,8);
+  const classroom = await call('school-sync','POST',{provider:'classroom',token:fakeToken});
+  assert.equal(classroom.status,200);
+  assert.equal(classroom.data.assignments[0].due,'2026-12-03');
+  assert.equal(classroom.data.grades[0].score,0);
+  assert.equal(classroom.data.undated,1);
+  validatePlan({...classroom.data,budget:90});
+  assert.equal((await call('plan')).data.data,null,'Reading coursework must not change the stored plan');
+} finally { globalThis.fetch = schoolFetch; }
 const plan={assignments:[{id:'one',name:'Math homework',subject:'Math',due:'2026-12-01',minutes:30,priority:'normal',type:'Assignment',completed:true}],grades:[{id:'grade-one',subject:'Math',name:'Quiz',score:18,max:20,weight:1,date:'2026-11-08'}],budget:60};
 result=await call('plan','PUT',{data:plan,revision:0});assert.equal(result.status,200);assert.equal(result.data.revision,1);
 assert.equal((await call('plan','PUT',{data:plan,revision:0})).status,409);

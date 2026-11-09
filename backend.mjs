@@ -32,11 +32,110 @@ export async function api(request,env){try{const url=new URL(request.url),path=u
  if(path==='/api/logout'&&request.method==='POST'){await db.prepare('DELETE FROM sessions WHERE token_hash=?').bind(user.token_hash).run();return json({ok:true},200,{'Set-Cookie':cookie('',0)});}
  if(path==='/api/plan'&&request.method==='GET'){const row=await db.prepare('SELECT data,revision,updated_at FROM plans WHERE user_id=?').bind(user.id).first();return json({data:row?JSON.parse(row.data):null,revision:row?.revision||0,updatedAt:row?.updated_at||null});}
  if(path==='/api/plan'&&request.method==='PUT'){const data=await body(request);const plan=validatePlan(data.data);if(!Number.isInteger(data.revision)||data.revision<0)fail('Invalid plan version.');const now=Date.now();await db.prepare('INSERT OR IGNORE INTO plans(user_id,data,revision,updated_at) VALUES(?,?,0,?)').bind(user.id,JSON.stringify({assignments:[],grades:[],budget:90}),now).run();const result=await db.prepare('UPDATE plans SET data=?,revision=revision+1,updated_at=? WHERE user_id=? AND revision=? RETURNING revision').bind(JSON.stringify(plan),now,user.id,data.revision).first();if(!result)fail('Your plan changed on another device. Choose which version to keep.',409);return json({revision:result.revision,updatedAt:now});}
+ if(path==='/api/school-sync'&&request.method==='POST') {
+   if(request.headers.get('X-StudyFlow-Account')!==user.id)fail('Your account changed. Reload before syncing.',401);
+   await limited(db,'school-sync:'+user.id,10);
+   return json(await readSchoolWork(await body(request)));
+ }
  if(path==='/api/practice-test'&&request.method==='POST')return await createPracticeTest(request,env,user);
  return json({error:'Not found.'},404);
  }catch(error){return json({error:error.status?error.message:'Something went wrong. Please try again.'},error.status||500);}}
 
 const practiceFileLimit = 2 * 1024 * 1024;
+
+async function readSchoolWork(input) {
+  const {provider, token} = input || {};
+  if (!['canvas','classroom'].includes(provider) || typeof token !== 'string' || !/^[!-~]{10,4096}$/.test(token)) {
+    fail('Provide a valid school access token.');
+  }
+  const canvas = provider === 'canvas';
+  let origin = 'https://classroom.googleapis.com';
+  if (canvas) {
+    let url;
+    try { url = new URL(input.origin); } catch { fail('Enter your HTTPS Canvas school URL.'); }
+    if (url.protocol !== 'https:' || !/^[a-z0-9-]+\.instructure\.com$/.test(url.hostname) || url.port || url.username || url.password) {
+      fail('Enter a hosted Canvas address such as https://your-school.instructure.com.');
+    }
+    origin = url.origin;
+  }
+  let requests = 0;
+  async function pages(path, collection) {
+    let url = new URL(path, origin);
+    const items = [];
+    while (url) {
+      if (url.origin !== origin || ++requests > 42) {
+        fail('This account has too much coursework to sync in one request.',422);
+      }
+      let response;
+      try {
+        response = await fetch(url, {
+          headers:{Authorization:'Bearer '+token, Accept:'application/json'},
+          redirect:'error', signal:AbortSignal.timeout(8000)
+        });
+      } catch {
+        fail('The school service could not be reached. Check the address and try again.',502);
+      }
+      if (response.status === 401 || response.status === 403) {
+        fail(canvas ? 'Canvas denied access. Check that the token belongs to this school and has access to your coursework.' :
+          'Google Classroom denied access. Check Classroom permissions and whether your school allows StudyFlow.',403);
+      }
+      if (!response.ok) fail('The school service could not return your coursework. Try again later.',502);
+      const payload = await response.json();
+      const batch = canvas ? payload : payload[collection] || [];
+      if (!Array.isArray(batch)) fail('The school service returned an unexpected result.',502);
+      items.push(...batch);
+      if (items.length > 1000) fail('This school returned too many results for one sync.',422);
+      if (canvas) {
+        const next = response.headers.get('Link')?.match(/<([^>]+)>\s*;\s*rel="next"/)?.[1];
+        url = next ? new URL(next, origin) : null;
+      } else if (payload.nextPageToken) {
+        url.searchParams.set('pageToken', payload.nextPageToken);
+      } else url = null;
+    }
+    return items;
+  }
+  const courses = canvas
+    ? await pages('/api/v1/courses?enrollment_type=student&enrollment_state=active&per_page=100')
+    : await pages('/v1/courses?studentId=me&courseStates=ACTIVE&pageSize=100','courses');
+  const assignments = [], grades = [];
+  let undated = 0, unsupportedScores = 0;
+  const datePart = value => typeof value === 'string' && /^\d{4}-\d{2}-\d{2}/.test(value) &&
+    Number.isFinite(Date.parse(value)) ? value.slice(0,10) : null;
+  for (const course of courses) {
+    const courseId = encodeURIComponent(String(course.id));
+    const subject = String(course.name || 'School course').trim().slice(0,40) || 'School course';
+    const work = canvas
+      ? await pages('/api/v1/courses/'+courseId+'/assignments?per_page=100&include%5B%5D=submission')
+      : await pages('/v1/courses/'+courseId+'/courseWork?courseWorkStates=PUBLISHED&pageSize=100','courseWork');
+    const submissions = canvas || !work.length ? [] : await pages(
+      '/v1/courses/'+courseId+'/courseWork/-/studentSubmissions?userId=me&pageSize=100','studentSubmissions');
+    const byWork = new Map(submissions.map(submission => [String(submission.courseWorkId), submission]));
+    for (const item of work) {
+      if (item.id == null || (canvas && item.published === false)) continue;
+      const name = String((canvas ? item.name : item.title) || 'Untitled assignment').trim().slice(0,120) || 'Untitled assignment';
+      const submission = canvas ? item.submission : byWork.get(String(item.id));
+      const googleDue = item.dueDate;
+      const due = canvas ? datePart(item.due_at) : googleDue ? datePart(
+        [googleDue.year,String(googleDue.month).padStart(2,'0'),String(googleDue.day).padStart(2,'0')].join('-')
+      ) : null;
+      const id = provider+'-'+(await digest(JSON.stringify([origin,course.id,item.id]))).slice(0,40);
+      const completed = canvas ? Boolean(submission?.submitted_at || submission?.excused) :
+        ['TURNED_IN','RETURNED'].includes(submission?.state);
+      if (due) assignments.push({id,name,subject,due,minutes:30,priority:'normal',type:'Assignment',completed});
+      else undated++;
+      const score = canvas ? submission?.score : submission?.assignedGrade;
+      const max = canvas ? item.points_possible : item.maxPoints;
+      if (Number.isFinite(score)) {
+        const date = datePart(canvas ? submission.graded_at : submission.updateTime) || due;
+        if (date && Number.isFinite(max) && max>0 && max<=10000 && score>=0 && score<=max && !submission.excused &&
+          (!canvas || submission.posted_at)) {
+          grades.push({id,name,subject,score,max,weight:1,date});
+        } else unsupportedScores++;
+      }
+    }
+  }
+  return {assignments, grades, undated, unsupportedScores};
+}
 const practiceTypes = {
   txt: 'text/plain',
   md: 'text/plain',
