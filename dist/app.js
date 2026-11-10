@@ -117,7 +117,7 @@ function dashboardBoard(renderers) {
       <div class="section-head"><div><h3>Add widgets</h3><p class="muted">Changes save automatically in this browser.</p></div><button class="text-button" type="button" data-widget-action="reset">Restore defaults</button></div>
       <div class="widget-options">${available.map(key=>`<button type="button" data-widget="${key}" data-widget-action="add"><strong>＋ ${widgetCatalog[key].name}</strong><small>${widgetCatalog[key].detail}</small></button>`).join('') || '<p class="muted">All available widgets are on your board.</p>'}</div>
     </section>
-    <div class="widget-grid">${widgets || '<p class="card muted">Your board is empty. Customize widgets to add a card.</p>'}</div>
+    <div class="widget-grid${editingWidgets?' widget-grid-editing':''}">${widgets || '<p class="card muted">Your board is empty. Customize widgets to add a card.</p>'}</div>
   </section>`;
 }
 

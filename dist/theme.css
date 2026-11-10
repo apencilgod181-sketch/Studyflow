@@ -139,6 +139,27 @@ select:not([multiple]):not([size]) {
 }
 .board-widget { min-width: 0; display: flex; flex-direction: column; }
 .board-widget > .card { flex: 1; margin: 0; }
+.widget-grid-editing .board-widget > .card {
+  outline: 1px dashed var(--green);
+  outline-offset: -3px;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .widget-grid-editing .board-widget > .card {
+    animation: studyflow-widget-sway var(--sway-duration, 2.1s) ease-in-out var(--sway-delay, 0s) infinite;
+    transform-origin: 50% 65%;
+  }
+  .widget-grid-editing .board-widget:nth-child(2n) {
+    --sway-duration: 2.45s;
+    --sway-delay: -.8s;
+  }
+  .widget-grid-editing .board-widget:nth-child(3n) { --sway-delay: -1.35s; }
+  .widget-grid-editing .board-widget > .card:is(:hover,:focus-within) { animation: none; }
+  @keyframes studyflow-widget-sway {
+    0%, 100% { transform: translateY(0) rotate(0); }
+    26% { transform: translateY(-2px) rotate(-.42deg); }
+    66% { transform: translateY(1px) rotate(.32deg); }
+  }
+}
 .widget-wide { grid-column: 1 / -1; }
 .widget-library { margin-bottom: 16px; }
 .widget-options button {
