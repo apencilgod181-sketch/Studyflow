@@ -146,6 +146,16 @@ select:not([multiple]):not([size]) {
 .coach-card { margin-top: 22px; }
 .coach-output { white-space: pre-wrap; overflow-wrap: anywhere; }
 .coach-output:empty { display: none; }
+.feedback-card { max-width: 880px; }
+.feedback-card .section-head { flex-wrap: wrap; }
+.feedback-card iframe {
+  display: block;
+  width: 100%;
+  height: 620px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #fff;
+}
 .week-toolbar {
   display: inline-grid;
   grid-template-columns: 44px auto 44px;

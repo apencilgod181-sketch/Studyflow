@@ -6,6 +6,9 @@ const studyLanguages = {
 // Each row follows the order of the language picker.
 const studyMessages = new Map(`
 Language|Sprache|Langue|语言|Idioma|Lingua|Idioma|言語|언어
+Feedback|Feedback|Avis|反馈|Comentarios|Feedback|Feedback|フィードバック|의견 보내기
+Share anonymous feedback|Anonymes Feedback senden|Donner un avis anonyme|提交匿名反馈|Enviar comentarios anónimos|Invia feedback anonimo|Enviar feedback anónimo|匿名で意見を送る|익명 의견 보내기
+Open in Google Forms|In Google Formulare öffnen|Ouvrir dans Google Forms|在 Google 表单中打开|Abrir en Google Forms|Apri in Google Moduli|Abrir no Google Forms|Google フォームで開く|Google 설문지에서 열기
 Theme|Design|Thème|主题|Tema|Tema|Tema|テーマ|테마
 Menu|Menü|Menu|菜单|Menú|Menu|Menu|メニュー|메뉴
 YOUR STUDY SPACE|DEIN LERNBEREICH|TON ESPACE D’ÉTUDE|你的学习空间|TU ESPACIO DE ESTUDIO|IL TUO SPAZIO DI STUDIO|O TEU ESPAÇO DE ESTUDO|学習スペース|나의 학습 공간
