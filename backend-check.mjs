@@ -46,9 +46,14 @@ const plan={assignments:[{id:'one',name:'Math homework',subject:'Math',due:'2026
 result=await call('plan','PUT',{data:plan,revision:0});assert.equal(result.status,200);assert.equal(result.data.revision,1);
 assert.equal((await call('plan','PUT',{data:plan,revision:0})).status,409);
 assert.throws(()=>validatePlan({...plan,grades:[{...plan.grades[0],score:25}]}));
+const setup={programme:'myp',subjects:['Math'],age:15,level:'Year 10',goal:'grades',gradeScale:'ib'};
+assert.equal((await call('plan','PUT',{data:{...plan,setup:{...setup,age:-1}},revision:1})).status,400);
+assert.equal((await call('plan','PUT',{data:{...plan,setup},revision:1})).status,200);
+assert.equal((await call('plan','PUT',{data:plan,revision:2})).status,200);
+assert.deepEqual((await call('plan')).data.data.setup,setup,'Older clients must preserve saved course setup');
 await call('logout','POST',{});assert.equal((await call('plan')).status,401);
 assert.equal((await call('login','POST',{email:'test@example.com',password:'Wrong-password-long-enough'})).status,401);
-result=await call('login','POST',{email:'test@example.com',password});assert.equal(result.status,200);assert.deepEqual((await call('plan')).data.data,plan);
+result=await call('login','POST',{email:'test@example.com',password});assert.equal(result.status,200);assert.deepEqual((await call('plan')).data.data,{...plan,setup});
 await call('logout','POST',{});await call('signup','POST',{name:'Other student',email:'other@example.com',password});assert.equal((await call('plan')).data.data,null);
 const otherCookie=cookie;cookie=firstCookie;assert.equal((await call('plan')).status,401);cookie=otherCookie;
 result=await call('recover','POST',{email:'test@example.com',recoveryCode:recovery,password:'New-synthetic-password-only!'});assert.equal(result.status,200);assert.notEqual(result.data.recoveryCode,recovery);assert.equal((await call('plan')).data.data.grades[0].score,18);

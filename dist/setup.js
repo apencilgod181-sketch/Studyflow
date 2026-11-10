@@ -61,7 +61,7 @@ function setupPage() {
       <form id="study-setup-form">
         <fieldset class="setup-subjects">
           <legend>About your studies</legend>
-          <p class="muted">Age, grade or year level, and your goal are optional and saved in this browser.</p>
+          <p class="muted">Age, grade or year level, and your goal are optional. ${globalThis.studyAccount.user?'Your setup is saved to your account.':'As a guest, your setup stays in this browser.'}</p>
           <div class="setup-details">
             <div>
               <label for="setup-age">Age (optional)</label>
@@ -162,7 +162,7 @@ document.addEventListener('submit', event => {
   if (budget !== minutes) {
     budget = minutes;
     save('studyflow.budget.v1', budget);
-  }
+  } else globalThis.studySyncChanged?.();
   location.hash = '#dashboard';
   toast('Study setup saved.');
 });
@@ -170,7 +170,7 @@ document.addEventListener('submit', event => {
 document.addEventListener('click', event => {
   if (event.target.id !== 'skip-study-setup') return;
   if (!setupPreferences()) {
-    try { localStorage.setItem(setupKey(), JSON.stringify({skipped:true})); }
+    try { localStorage.setItem(setupKey(), JSON.stringify({skipped:true})); globalThis.studySyncChanged?.(); }
     catch { /* The dashboard link still works for this visit. */ }
   }
   location.hash = '#dashboard';
