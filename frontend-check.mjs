@@ -16,7 +16,7 @@ const submit=first.events.submit[2];await submit({preventDefault(){},target:{id:
 const setupSubmit=first.events.submit[1];
 assert.match(first.run('setupChoices("myp",[])'), /Individuals and societies/);
 assert.match(first.run('setupChoices("ap",[])'), /AP Calculus AB/);
-setupSubmit({preventDefault(){},target:{id:'study-setup-form',data:{programme:'ap',course:['AP Biology'],custom:'Robotics',age:'15',level:'Year 10',minutes:'60',goal:'grades'}}});
+setupSubmit({preventDefault(){},target:{id:'study-setup-form',data:{programme:'ap',course:['AP Biology'],customSubject:['Robotics','Photography','robotics',' '],age:'15',level:'Year 10',minutes:'60',goal:'grades'}}});
 assert.match(first.run('dashboard()'), /AP Biology/);
 assert.match(first.run('dashboard()'), /Track and improve my grades/);
 assert.match(first.run('setupPage()'), /value="Year 10"/);
@@ -24,6 +24,7 @@ assert.equal(first.run('setupPreferences().age'),15);
 await first.run('pushPlan()');
 assert.equal(cloud.get(user.id).data.budget,60);
 assert.match(first.run('gradesPage()'), /<option value="Robotics">/);
+assert.match(first.run('setupPage()'), /name="customSubject"[^>]*value="Photography"/);
 const personalSubmit=first.events.submit[0];
 await personalSubmit({preventDefault(){},target:{id:'personal-profile-form',querySelector:()=>({disabled:false}),data:{name:'Avery',accent:'#912465',tint:'#ddddff'}}});
 await personalSubmit({preventDefault(){},target:{id:'journal-form',querySelector:()=>({disabled:false}),data:{title:'First milestone',date:'2026-11-09',note:'Finished my draft'}}});
@@ -70,7 +71,7 @@ first.events.click[0]({target:{closest:selector=>selector==='[data-action],[data
 await first.run('pushPlan()');
 assert.equal(cloud.get(user.id).data.grades.length,0);
 assert.equal(cloud.get(user.id).data.assignments.length,0);
-setupSubmit({preventDefault(){},target:{id:'study-setup-form',data:{programme:'myp',course:['Mathematics'],custom:'',minutes:'60'}}});
+setupSubmit({preventDefault(){},target:{id:'study-setup-form',data:{programme:'myp',course:['Mathematics'],minutes:'60'}}});
 assert.match(first.run('gradesPage()'), /Grade out of 7/);
 await submit({preventDefault(){},target:{id:'grade-form',data:{subject:'Mathematics',name:'Algebra',score:'6',scale:'ib',date:'2026-11-09',weight:'1'}}});
 await first.run('pushPlan()');

@@ -29,6 +29,10 @@ Add an assignment|Aufgabe hinzufügen|Ajouter un devoir|添加任务|Añadir tar
 Edit assignment|Aufgabe bearbeiten|Modifier le devoir|编辑任务|Editar tarea|Modifica compito|Editar tarefa|課題を編集|과제 수정
 Task name|Aufgabenname|Nom de la tâche|任务名称|Nombre de la tarea|Nome del compito|Nome da tarefa|課題名|과제 이름
 Subject|Fach|Matière|科目|Asignatura|Materia|Disciplina|科目|과목
+Your own subjects|Eigene Fächer|Tes propres matières|自定义科目|Tus propias asignaturas|Le tue materie|As tuas disciplinas|自分の科目|내 과목
+Add subject|Fach hinzufügen|Ajouter une matière|添加科目|Añadir asignatura|Aggiungi materia|Adicionar disciplina|科目を追加|과목 추가
+Subject name|Fachname|Nom de la matière|科目名称|Nombre de la asignatura|Nome della materia|Nome da disciplina|科目名|과목 이름
+Remove subject|Fach entfernen|Supprimer la matière|移除科目|Quitar asignatura|Rimuovi materia|Remover disciplina|科目を削除|과목 제거
 Type|Typ|Type|类型|Tipo|Tipo|Tipo|種類|유형
 Assignment|Aufgabe|Devoir|作业|Tarea|Compito|Tarefa|課題|과제
 Test|Test|Contrôle|考试|Examen|Verifica|Teste|テスト|시험

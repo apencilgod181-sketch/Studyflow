@@ -51,6 +51,13 @@ function setupChoices(programme, selected) {
   </label>`).join('')}</div>${source ? `<a class="text-button" href="${source}" target="_blank" rel="noopener">Explore programme subjects ↗</a>` : ''}`;
 }
 
+function customSubjectRow(name='') {
+  return `<div class="setup-subject-row">
+    <label>Subject name<input name="customSubject" maxlength="40" placeholder="e.g. Robotics" value="${esc(name)}"></label>
+    <button class="button secondary small" type="button" data-remove-subject>Remove subject</button>
+  </div>`;
+}
+
 function setupPage() {
   const saved = setupPreferences();
   const programme = Object.hasOwn(studyProgrammes, saved?.programme) ? saved.programme : '';
@@ -100,9 +107,12 @@ function setupPage() {
           <p class="muted">Select any subjects you take. Availability varies by school.</p>
           <div id="setup-suggestions" aria-live="polite">${setupChoices(programme,selected)}</div>
         </fieldset>
-        <label for="setup-custom">Your own subjects (optional)</label>
-        <textarea id="setup-custom" name="custom" rows="2" maxlength="900" placeholder="Enter one subject per line">${esc(custom.join('\n'))}</textarea>
-        <p class="muted">Your choices appear in the subject pickers when adding tasks and grades.</p>
+        <fieldset class="setup-subjects">
+          <legend>Your own subjects</legend>
+          <p class="muted">Add any subject you take. Your choices appear when adding tasks and grades.</p>
+          <div id="setup-custom-subjects">${custom.map(customSubjectRow).join('')}</div>
+          <button class="button secondary small" type="button" id="add-setup-subject"><span aria-hidden="true">＋</span> Add subject</button>
+        </fieldset>
         <p id="setup-error" class="form-error" role="alert"></p>
         <button class="button" type="submit">Save and open dashboard</button>
         <button class="text-button" type="button" id="skip-study-setup">${saved?.programme ? 'Back to dashboard' : 'Skip for now'}</button>
@@ -137,9 +147,15 @@ document.addEventListener('submit', event => {
   const programme = fields.get('programme');
   if (!Object.hasOwn(studyProgrammes, programme)) return;
   const allowed = studyProgrammes[programme].courses;
-  const subjects = [...fields.getAll('course').filter(course => allowed.includes(course)), ...fields.get('custom').split(/\r?\n/)]
+  const subjects = [...fields.getAll('course').filter(course => allowed.includes(course)), ...fields.getAll('customSubject')]
     .map(course => course.trim()).filter(Boolean);
-  const unique = [...new Map(subjects.map(course => [course.toLowerCase(),course])).values()];
+  const seen = new Set();
+  const unique = subjects.filter(course => {
+    const key = course.toLowerCase();
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
   if (unique.length > 30 || unique.some(course => course.length > 40)) {
     $('#setup-error').textContent = 'Choose up to 30 subjects. Keep each name to 40 characters or fewer.';
     return;
@@ -168,6 +184,22 @@ document.addEventListener('submit', event => {
 });
 
 document.addEventListener('click', event => {
+  if (event.target.closest?.('#add-setup-subject')?.id === 'add-setup-subject') {
+    const list = $('#setup-custom-subjects');
+    if (list.children.length >= 30) {
+      $('#setup-error').textContent = 'You can add up to 30 subjects.';
+      return;
+    }
+    list.insertAdjacentHTML('beforeend',customSubjectRow());
+    list.lastElementChild.querySelector('input').focus();
+    return;
+  }
+  const remove = event.target.closest?.('[data-remove-subject]');
+  if (remove?.hasAttribute?.('data-remove-subject')) {
+    remove.closest('.setup-subject-row').remove();
+    $('#add-setup-subject').focus();
+    return;
+  }
   if (event.target.id !== 'skip-study-setup') return;
   if (!setupPreferences()) {
     try { localStorage.setItem(setupKey(), JSON.stringify({skipped:true})); globalThis.studySyncChanged?.(); }
