@@ -368,6 +368,7 @@ document.addEventListener('change',e=>{if(e.target.dataset.complete){const a=ass
       persist();
       render();
       toast('Task completed and moved to your archive.');
+      $('.widget-progress .ring')?.classList.add('completion-pop');
       undoCompletion={id:a.id, owner:globalThis.studyAccount.user?.id};
       $('#undo-completion').hidden=false;
       clearTimeout(toast.timeout);
@@ -485,6 +486,7 @@ function handleWidgetClick(button) {
     catch { toast('Your browser could not save the widget layout.'); return; }
   }
   render();
+  if (key && Object.hasOwn(widgetCatalog,key)) $(`.widget-${key}`)?.classList.add('widget-settle');
   const nextButton = key && Object.hasOwn(widgetCatalog,key) && $(`[data-widget="${key}"][data-widget-action="${action}"]:not(:disabled)`);
   (nextButton || $('[data-widget-action="toggle"]'))?.focus();
 }

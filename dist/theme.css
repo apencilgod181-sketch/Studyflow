@@ -140,25 +140,58 @@ select:not([multiple]):not([size]) {
 .board-widget { min-width: 0; display: flex; flex-direction: column; }
 .board-widget > .card { flex: 1; margin: 0; }
 .widget-grid-editing .board-widget > .card {
-  outline: 1px dashed var(--green);
+  outline: 2px dashed var(--green);
   outline-offset: -3px;
 }
 @media (prefers-reduced-motion: no-preference) {
   .widget-grid-editing .board-widget > .card {
-    animation: studyflow-widget-sway var(--sway-duration, 2.1s) ease-in-out var(--sway-delay, 0s) infinite;
-    transform-origin: 50% 65%;
+    animation: studyflow-widget-sway var(--sway-duration, 1.55s) ease-in-out var(--sway-delay, 0s) infinite;
+    transform-origin: 50% 58%;
   }
   .widget-grid-editing .board-widget:nth-child(2n) {
-    --sway-duration: 2.45s;
-    --sway-delay: -.8s;
+    --sway-duration: 1.85s;
+    --sway-delay: -.62s;
   }
-  .widget-grid-editing .board-widget:nth-child(3n) { --sway-delay: -1.35s; }
+  .widget-grid-editing .board-widget:nth-child(3n) { --sway-delay: -1.05s; }
   .widget-grid-editing .board-widget > .card:is(:hover,:focus-within) { animation: none; }
   @keyframes studyflow-widget-sway {
     0%, 100% { transform: translateY(0) rotate(0); }
-    26% { transform: translateY(-2px) rotate(-.42deg); }
-    66% { transform: translateY(1px) rotate(.32deg); }
+    26% { transform: translateY(-4px) rotate(-1deg); }
+    66% { transform: translateY(2px) rotate(.8deg); }
   }
+  .widget-library:not([hidden]),
+  .widget-settle,
+  #practice-quiz,
+  #practice-quiz .notice,
+  .coach-output:not(:empty) { animation: studyflow-reveal 300ms var(--ease-out) both; }
+  .completion-pop { animation: studyflow-pop 420ms var(--ease-out); }
+  #toast.visible:has(#undo-completion:not([hidden])) { animation: studyflow-success-toast 420ms var(--ease-out) both; }
+  #practice-generate[aria-busy="true"]::before {
+    content: '';
+    width: 12px;
+    height: 12px;
+    border: 2px solid currentColor;
+    border-inline-end-color: transparent;
+    border-radius: 50%;
+    animation: studyflow-spinner 800ms linear infinite;
+  }
+  .session-layout:has(#timer-controls[data-state="finished"]) .timer {
+    animation: studyflow-pop 420ms var(--ease-out);
+  }
+  @keyframes studyflow-reveal {
+    from { opacity: .45; transform: translateY(7px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes studyflow-pop {
+    0%, 100% { transform: scale(1); }
+    43% { transform: scale(1.075); }
+  }
+  @keyframes studyflow-success-toast {
+    from { opacity: 0; translate: 0 10px; scale: .94; }
+    65% { opacity: 1; translate: 0 -2px; scale: 1.025; }
+    to { opacity: 1; translate: 0 0; scale: 1; }
+  }
+  @keyframes studyflow-spinner { to { transform: rotate(1turn); } }
 }
 .widget-wide { grid-column: 1 / -1; }
 .widget-library { margin-bottom: 16px; }

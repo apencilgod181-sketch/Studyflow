@@ -25,7 +25,7 @@ function aiPractice() {
         <p class="muted" id="practice-file-help">PDF, Word (.docx), TXT, or Markdown, up to 2 MB. For long documents, upload the section you want to study.</p>
         <p class="muted" id="practice-file-status" role="status">${file?'Ready: '+esc(file.name):'Choose notes, a worksheet, or a study guide.'}</p>
         <p class="muted">Your document goes to Cloudflare AI when you generate a test. StudyFlow doesn’t save the document or test. Remove personal details before uploading.</p>
-        <button class="button" type="button" id="practice-generate" ${busy||!file?'disabled':''}>${busy?'Creating your test…':'Generate practice test ✧'}</button>
+        <button class="button" type="button" id="practice-generate" aria-busy="${Boolean(busy)}" ${busy||!file?'disabled':''}>${busy?'Creating your test…':'Generate practice test ✧'}</button>
         <button class="text-button delete-control" type="button" id="practice-clear-file" ${busy||!file?'hidden':''}>Remove selected file</button>
         <p class="form-error" id="practice-upload-error" role="alert">${esc(error||'')}</p>
       </div>
