@@ -69,7 +69,7 @@ function personalizePage() {
         <form id="personal-profile-form">
           <div class="profile-preview">${profileAvatar()}<strong>${esc(preferredName() || 'Guest workspace')}</strong></div>
           <label>Profile picture<input name="avatar" type="file" accept="image/jpeg,image/png,image/webp"></label>
-          ${profile.avatar ? '<label class="journal-check"><input type="checkbox" name="remove-avatar"> Remove current picture</label>' : ''}
+          <button class="text-button delete-control" type="button" data-remove-avatar ${profile.avatar?'':'hidden'}>Remove current picture</button>
           <p class="muted">JPEG, PNG, or WebP up to 8 MB. Your display name and picture stay in this browser.</p>
           <label>Preferred name<input name="name" maxlength="60" value="${esc(profile.name)}" placeholder="Name used on your dashboard"></label>
           <div class="form-grid">
@@ -78,7 +78,7 @@ function personalizePage() {
           </div>
           <p class="muted">Changing a color applies your Custom theme. You can switch themes in the header.</p>
           <p class="form-error" role="alert" id="profile-error"></p>
-          <button class="button" type="submit">Save profile and theme</button>
+          <p id="profile-save-status" class="muted" role="status">Changes save automatically on this device.</p>
           <button class="text-button delete-control" type="button" data-reset-personal>Reset name and colors</button>
         </form>
       </section>
@@ -148,38 +148,75 @@ async function resizeStudyPicture(file, maxDimension) {
   }
 }
 
+function saveProfileChanges(changes) {
+  const profile = personalProfile();
+  if (Object.entries(changes).every(([key,value])=>profile[key]===value)) return;
+  localStorage.setItem(personalKey(), JSON.stringify({...profile,...changes}));
+  if (['accent','tint'].some(key=>Object.hasOwn(changes,key)&&changes[key]!==profile[key])) {
+    localStorage.setItem('studyflow.theme.v1',JSON.stringify('custom'));
+    currentTheme = 'custom';
+    document.documentElement.dataset.theme = currentTheme;
+    $('#studyflow-theme').value = currentTheme;
+    applyPersonalColors();
+  }
+  if (typeof updateAccountStatus==='function') updateAccountStatus();
+}
+
+function profileSaveFeedback(form, error) {
+  const status = form.querySelector('#profile-save-status');
+  const alert = form.querySelector('#profile-error');
+  if (status) status.textContent = error ? 'Changes could not be saved.' : 'Saved on this device.';
+  if (alert) alert.textContent = error ? (error.name==='QuotaExceededError' ? 'Browser storage is full. Free up space and try again.' : error.message) : '';
+  if (error || !document.contains(form)) return;
+  form.querySelector('.profile-preview').innerHTML = profileAvatar() + '<strong>'+esc(preferredName() || 'Guest workspace')+'</strong>';
+  form.querySelector('[data-remove-avatar]').hidden = !personalProfile().avatar;
+}
+
+let photoSaveVersion = 0;
+document.addEventListener('input', event => {
+  const field = event.target;
+  if (field.form?.id !== 'personal-profile-form' || field.name !== 'name' || event.isComposing) return;
+  try { saveProfileChanges({name:field.value.trim()}); profileSaveFeedback(field.form); }
+  catch (error) { profileSaveFeedback(field.form,error); }
+});
+
+document.addEventListener('change', async event => {
+  const field = event.target;
+  const form = field.form;
+  if (form?.id !== 'personal-profile-form') return;
+  const key = personalKey();
+  try {
+    if (field.name === 'avatar' && field.files[0]) {
+      const version = ++photoSaveVersion;
+      form.querySelector('#profile-save-status').textContent = 'Saving picture…';
+      const avatar = await resizeStudyPicture(field.files[0],256);
+      if (version !== photoSaveVersion || key !== personalKey()) return;
+      saveProfileChanges({avatar});
+      field.value = '';
+    } else if (['name','accent','tint'].includes(field.name)) {
+      saveProfileChanges({[field.name]:field.value.trim()});
+    } else return;
+    profileSaveFeedback(form);
+  } catch (error) { if (key===personalKey()) profileSaveFeedback(form,error); }
+});
+
 document.addEventListener('submit', async event => {
   const form = event.target;
   if (form.id === 'personal-profile-form') {
     event.preventDefault();
     const data = new FormData(form);
     const key = personalKey();
-    const submit = form.querySelector('[type=submit]');
-    if (submit.disabled) return;
-    submit.disabled = true;
     try {
       const file = data.get('avatar');
       const newPicture = file?.size ? await resizeStudyPicture(file, 256) : undefined;
       if (key !== personalKey()) return;
-      const profile = personalProfile();
-      const accent = data.get('accent');
-      const tint = data.get('tint');
-      localStorage.setItem(key, JSON.stringify({
-        ...profile, name:data.get('name').trim(), accent, tint,
-        avatar:newPicture ?? (data.has('remove-avatar') ? '' : profile.avatar)
-      }));
-      if (accent !== profile.accent || tint !== profile.tint) {
-        currentTheme = 'custom';
-        localStorage.setItem('studyflow.theme.v1', JSON.stringify(currentTheme));
-        document.documentElement.dataset.theme = currentTheme;
-        $('#studyflow-theme').value = currentTheme;
-      }
-      render();
-      toast('Profile and theme saved.');
+      const changes = {name:data.get('name').trim(),accent:data.get('accent'),tint:data.get('tint')};
+      if (newPicture || data.has('remove-avatar')) changes.avatar = newPicture || '';
+      saveProfileChanges(changes);
+      profileSaveFeedback(form);
     } catch (error) {
-      form.querySelector('#profile-error').textContent = error.name === 'QuotaExceededError'
-        ? 'Browser storage is full. Free up some space and try again.' : error.message;
-    } finally { submit.disabled = false; }
+      profileSaveFeedback(form,error);
+    }
     return;
   }
   if (form.id !== 'journal-form') return;
@@ -217,6 +254,14 @@ document.addEventListener('submit', async event => {
 });
 
 document.addEventListener('click', event => {
+  const removeAvatar = event.target.closest('[data-remove-avatar]');
+  if (removeAvatar) {
+    photoSaveVersion++;
+    const form = removeAvatar.form;
+    try { saveProfileChanges({avatar:''}); profileSaveFeedback(form); form.elements.namedItem('avatar').focus(); }
+    catch (error) { profileSaveFeedback(form,error); }
+    return;
+  }
   if (event.target.closest('[data-reset-personal]')) {
     if (!confirm('Reset your preferred name and custom colors?')) return;
     try {
