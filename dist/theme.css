@@ -86,6 +86,31 @@ main:focus { outline: none; }
 dialog { max-height: calc(100dvh - 24px); overflow: auto; }
 .theme-picker { display: flex; align-items: center; gap: 8px; margin: 0 0 0 auto; }
 .theme-picker select { width: auto; padding: 6px 8px; font-size: 12px; }
+select:not([multiple]):not([size]) {
+  appearance: none;
+  padding-inline-end: 36px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='m4 6 4 4 4-4' fill='none' stroke='%23485e50' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 13px center;
+  background-size: 16px;
+  text-overflow: ellipsis;
+}
+[data-theme="midnight"] select:not([multiple]):not([size]) {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='m4 6 4 4 4-4' fill='none' stroke='%23dceaff' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 13px center;
+  background-size: 16px;
+}
+#assignment-dialog input[type="date"] { padding-inline-end: 14px; }
+[data-theme="midnight"] #assignment-dialog { color: #ecf3fc; }
+.focus-chime { display: flex; align-items: center; justify-content: center; }
+.focus-chime input { width: auto; }
+.coach-card { margin-top: 22px; }
+.coach-output { white-space: pre-wrap; overflow-wrap: anywhere; }
+.coach-output:empty { display: none; }
+@media (forced-colors: active) {
+  select:not([multiple]):not([size]) { appearance: auto; }
+}
 .topbar { gap: 16px; }
 .archive-results { margin-top: 20px; }
 .archive-row { align-items: center; }
@@ -191,7 +216,7 @@ dialog { max-height: calc(100dvh - 24px); overflow: auto; }
   color: inherit;
 }
 [data-theme="midnight"] :is(.day.today, .focus-card, .sidebar-bottom, .notice) { background: #293c54; }
-[data-theme="midnight"] :is(input:not([type=checkbox]):not([type=radio]), select, textarea) { background: #192738; color: #ecf3fc; border-color: #50627a; }
+[data-theme="midnight"] :is(input:not([type=checkbox]):not([type=radio]), select, textarea) { background-color: #192738; color: #ecf3fc; border-color: #50627a; }
 [data-theme="midnight"] .hero { background: linear-gradient(115deg, #263d57, #29394e 70%, #294459); border-color: var(--line); }
 [data-theme="midnight"] .hero::after { background-image: radial-gradient(circle, #9ab5d666 1px, transparent 1.5px); }
 [data-theme="midnight"] :is(.workspace, .eyebrow, .hero p, .topbar, nav a, label, .task-meta, .task-time, .day-label, .week-task small, .grade-result small, .sidebar-bottom .local-badge, .empty, footer, .timer-status, .focus-card p, .progress-card p, .ring small, .below-note, .plan-bottom, .auth-story > p) { color: var(--muted); }

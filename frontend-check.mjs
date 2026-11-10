@@ -67,5 +67,11 @@ first.events.click[0]({target:{closest:selector=>selector==='[data-action],[data
 await first.run('pushPlan()');
 assert.equal(cloud.get(user.id).data.grades.length,0);
 assert.equal(cloud.get(user.id).data.assignments.length,0);
+setupSubmit({preventDefault(){},target:{id:'study-setup-form',data:{programme:'myp',course:['Mathematics'],custom:'',minutes:'60'}}});
+assert.match(first.run('gradesPage()'), /Grade out of 7/);
+await submit({preventDefault(){},target:{id:'grade-form',data:{subject:'Mathematics',name:'Algebra',score:'6',scale:'ib',date:'2026-11-09',weight:'1'}}});
+await first.run('pushPlan()');
+assert.equal(cloud.get(user.id).data.grades.find(grade=>grade.scale==='ib').max,7);
+assert.match(first.run('dashboard()'), /<strong>6 \/ 7<\/strong>/);
 first.run("page='signup';authPage();page='login';authPage();page='recover';authPage();page='grades';gradesPage();");
 console.log('Passed frontend: account/guest separation, grades, weighted averages, cross-device sync, stale-write conflicts, account switching, and auth page rendering.');

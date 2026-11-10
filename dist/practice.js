@@ -136,3 +136,57 @@ document.addEventListener('click', event => {
   practiceUpload.graded = false;
   render();
 });
+const coachActions = {
+  dashboard:['Plan today with AI','open assignments and study time'],
+  weekly:['Plan the week with AI','upcoming assignments and study time'],
+  session:['Break this task into steps with AI','selected assignment'],
+  grades:['Get AI review suggestions','recent assessment names, subjects, and grades']
+};
+
+function studyCoachCard(mode) {
+  if (!globalThis.studyAccount.user) return '';
+  const [label, context] = coachActions[mode];
+  return `<section class="card coach-card"><h2>Study coach</h2>
+    <p class="muted">This sends your ${context} to Cloudflare Workers AI when you click. Check suggestions against your schoolwork.</p>
+    <button class="button secondary" type="button" data-coach="${mode}">${label}</button>
+    <p class="coach-output" role="status"></p>
+  </section>`;
+}
+
+function studyCoachContext(mode) {
+  if (mode === 'grades') return [...grades].sort((a,b)=>b.date.localeCompare(a.date)).slice(0,10)
+    .map(grade => ({subject:grade.subject, assessment:grade.name, result:gradeResultText(grade), scale:gradeScales[gradeScaleKey(grade)].label}));
+  if (mode === 'session') {
+    const task = assignments.find(item => item.id === session.task && !item.completed);
+    return task ? {assignment:task.name, subject:task.subject} : null;
+  }
+  const horizon = dayDate(dateKey());
+  horizon.setDate(horizon.getDate()+7);
+  const tasks = sorted().filter(task=>!task.completed && (mode!=='weekly'||task.due<=dateKey(horizon))).slice(0,15);
+  return tasks.length ? {today:dateKey(), budget, tasks:tasks.map(({name,subject,due,minutes,priority})=>({name,subject,due,minutes,priority}))} : null;
+}
+
+document.addEventListener('click', async event => {
+  const button = event.target.closest('[data-coach]');
+  if (!button || button.disabled) return;
+  const mode = button.dataset.coach;
+  const output = button.closest('.coach-card').querySelector('.coach-output');
+  const context = studyCoachContext(mode);
+  if (!context || (Array.isArray(context) && !context.length)) {
+    output.textContent = mode === 'session' ? 'Choose an assignment first.' : mode === 'grades' ? 'Record a grade first.' : 'Add an upcoming assignment first.';
+    return;
+  }
+  button.disabled = true;
+  output.textContent = 'Preparing suggestions…';
+  try {
+    const data = await requestAPI('study-coach',{
+      method:'POST',headers:{'X-StudyFlow-Account':globalThis.studyAccount.user.id},
+      body:JSON.stringify({mode,context:JSON.stringify(context)})
+    });
+    output.textContent = data.advice;
+  } catch (error) {
+    output.textContent = error.message;
+  } finally {
+    button.disabled = false;
+  }
+});

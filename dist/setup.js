@@ -23,6 +23,19 @@ function setupPreferences() {
   return read(setupKey(), null);
 }
 
+function programmeGradeScale() {
+  const preferences = setupPreferences();
+  if (Object.hasOwn(gradeScales, preferences?.gradeScale)) return preferences.gradeScale;
+  switch (preferences?.programme) {
+    case 'myp':
+    case 'dp': return 'ib';
+    case 'ap': return 'ap';
+    case 'gcse': return 'gcse';
+    case 'alevel': return 'alevel';
+    default: return 'points';
+  }
+}
+
 function setupSuggestedSubjects() {
   const subjects = setupPreferences()?.subjects;
   return Array.isArray(subjects) ? subjects : [];
@@ -76,6 +89,11 @@ function setupPage() {
         <select id="study-programme" name="programme" required>
           <option value="">Choose a programme</option>
           ${Object.entries(studyProgrammes).map(([key, option]) => `<option value="${key}" ${key===programme?'selected':''}>${esc(option.label)}</option>`).join('')}
+        </select>
+        <label for="setup-grade-scale">Default grading scale</label>
+        <select id="setup-grade-scale" name="gradeScale">
+          <option value="">Use my programme’s default</option>
+          ${Object.entries(gradeScales).map(([key, scale]) => `<option value="${key}" ${saved?.gradeScale===key?'selected':''}>${esc(scale.label)}</option>`).join('')}
         </select>
         <fieldset class="setup-subjects">
           <legend>Suggested subjects</legend>
@@ -138,7 +156,8 @@ document.addEventListener('submit', event => {
     $('#setup-error').textContent = 'Choose between 15 and 480 minutes of study time.';
     return;
   }
-  try { localStorage.setItem(setupKey(), JSON.stringify({programme,subjects:unique,age,level,goal})); }
+  const gradeScale = Object.hasOwn(gradeScales, fields.get('gradeScale')) ? fields.get('gradeScale') : '';
+  try { localStorage.setItem(setupKey(), JSON.stringify({programme,subjects:unique,age,level,goal,gradeScale})); }
   catch { $('#setup-error').textContent = 'Your browser could not save this setup.'; return; }
   if (budget !== minutes) {
     budget = minutes;
