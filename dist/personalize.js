@@ -17,6 +17,13 @@ function preferredName() {
   return personalProfile().name || globalThis.studyAccount.user?.name || '';
 }
 
+function accountProfileSettings() {
+  const saved = read(personalKey(), {});
+  if (!['name','avatar','accent','tint'].some(key=>Object.hasOwn(saved,key))) return null;
+  const {name,avatar,accent,tint} = personalProfile();
+  return {name,avatar,accent,tint};
+}
+
 function isProfilePhoto(picture) {
   return /^data:image\/jpeg;base64,[a-z0-9+/=]+$/i.test(picture || '');
 }
@@ -70,7 +77,7 @@ function personalizePage() {
           <div class="profile-preview">${profileAvatar()}<strong>${esc(preferredName() || 'Guest workspace')}</strong></div>
           <label>Profile picture<input name="avatar" type="file" accept="image/jpeg,image/png,image/webp"></label>
           <button class="text-button delete-control" type="button" data-remove-avatar ${profile.avatar?'':'hidden'}>Remove current picture</button>
-          <p class="muted">JPEG, PNG, or WebP up to 8 MB. Your display name and picture stay in this browser.</p>
+          <p class="muted">JPEG, PNG, or WebP up to 8 MB. ${globalThis.studyAccount.user?'Your name, picture, and custom colors sync to your account.':'Sign in to sync your profile across devices.'}</p>
           <label>Preferred name<input name="name" maxlength="60" value="${esc(profile.name)}" placeholder="Name used on your dashboard"></label>
           <div class="form-grid">
             <label>Accent color<input name="accent" type="color" value="${profile.accent}"></label>
@@ -152,6 +159,7 @@ function saveProfileChanges(changes) {
   const profile = personalProfile();
   if (Object.entries(changes).every(([key,value])=>profile[key]===value)) return;
   localStorage.setItem(personalKey(), JSON.stringify({...profile,...changes}));
+  globalThis.studySyncChanged?.();
   if (['accent','tint'].some(key=>Object.hasOwn(changes,key)&&changes[key]!==profile[key])) {
     localStorage.setItem('studyflow.theme.v1',JSON.stringify('custom'));
     currentTheme = 'custom';
@@ -265,8 +273,7 @@ document.addEventListener('click', event => {
   if (event.target.closest('[data-reset-personal]')) {
     if (!confirm('Reset your preferred name and custom colors?')) return;
     try {
-      const {logs, avatar} = personalProfile();
-      localStorage.setItem(personalKey(), JSON.stringify({logs, avatar}));
+      saveProfileChanges({name:'',accent:'#346b50',tint:'#b7d5b5'});
       localStorage.setItem('studyflow.theme.v1', JSON.stringify('sage'));
       currentTheme = 'sage';
       document.documentElement.dataset.theme = currentTheme;

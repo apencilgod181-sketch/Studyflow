@@ -279,6 +279,26 @@ select:not([multiple]):not([size]) {
 @media (pointer: coarse) {
   .widget-tools button { min-width: 44px; min-height: 44px; }
 }
+
+.sample-badge { background: var(--metric-bg,#eaf0e8); color: var(--muted); }
+.grade-preview { color: inherit; }
+:is(.muted,.subtitle,.empty,.task-meta,.task-time,.day-label,.week-task small,.grade-result small,.timer-status) {
+  color: var(--muted);
+}
+input::placeholder, textarea::placeholder { color: var(--muted); opacity: 1; }
+.grade-row > div:first-child { min-width: 0; }
+.grade-result { flex-shrink: 0; }
+
+@media (max-width: 760px) {
+  .grades-layout .subject-grid { grid-template-columns: minmax(0,1fr); }
+  .week-grid .day { min-height: 0; }
+  .day-number { margin-bottom: 8px; }
+}
+@media (max-width: 480px) {
+  .grade-form-card .form-grid, .week-grid { grid-template-columns: minmax(0,1fr); }
+  .grade-row { align-items: start; gap: 8px; }
+  .grade-result .entry-actions { justify-content: flex-end; }
+}
 @media (forced-colors: active) {
   select:not([multiple]):not([size]) { appearance: auto; }
 }
