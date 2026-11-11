@@ -12,6 +12,14 @@ Open in Google Forms|In Google Formulare öffnen|Ouvrir dans Google Forms|在 Go
 Theme|Design|Thème|主题|Tema|Tema|Tema|テーマ|테마
 Menu|Menü|Menu|菜单|Menú|Menu|Menu|メニュー|메뉴
 More|Mehr|Plus|更多|Más|Altro|Mais|その他|더 보기
+Practice|Üben|Réviser|练习|Practicar|Esercizi|Praticar|練習|연습
+Focus|Fokus|Focus|专注|Enfoque|Focus|Foco|集中|집중
+Week|Woche|Semaine|本周|Semana|Settimana|Semana|週間|주간
+Home|Start|Accueil|首页|Inicio|Home|Início|ホーム|홈
+Main navigation|Hauptnavigation|Navigation principale|主导航|Navegación principal|Navigazione principale|Navegação principal|メインナビゲーション|주 메뉴
+Mobile navigation|Mobile Navigation|Navigation mobile|移动导航|Navegación móvil|Navigazione mobile|Navegação móvel|モバイルナビゲーション|모바일 메뉴
+Close menu|Menü schließen|Fermer le menu|关闭菜单|Cerrar menú|Chiudi menu|Fechar menu|メニューを閉じる|메뉴 닫기
+Close dialog|Dialog schließen|Fermer la fenêtre|关闭对话框|Cerrar ventana|Chiudi finestra|Fechar janela|ダイアログを閉じる|창 닫기
 YOUR STUDY SPACE|DEIN LERNBEREICH|TON ESPACE D’ÉTUDE|你的学习空间|TU ESPACIO DE ESTUDIO|IL TUO SPAZIO DI STUDIO|O TEU ESPAÇO DE ESTUDO|学習スペース|나의 학습 공간
 Dashboard|Übersicht|Tableau de bord|仪表盘|Panel|Panoramica|Painel|ダッシュボード|대시보드
 Weekly plan|Wochenplan|Planning de la semaine|每周计划|Plan semanal|Piano settimanale|Plano semanal|週間計画|주간 계획
@@ -144,25 +152,33 @@ function studyTranslate(text) {
 }
 
 const languageSources = new WeakMap();
+const attributeSources = new WeakMap();
 function translateStudyUI() {
-  const roots = document.querySelectorAll('.sidebar, .mobile-nav, .topbar, #main, #assignment-dialog, #toast');
+  const roots = document.querySelectorAll('.sidebar, .mobile-nav, .topbar, #main, #assignment-dialog, #toast, footer, #nav-backdrop');
   for (const root of roots) {
     const walker = document.createTreeWalker(root,NodeFilter.SHOW_TEXT);
     for (let node=walker.nextNode();node;node=walker.nextNode()) {
-      if (node.parentElement?.closest('.task-title,.subject,.week-task p,.grade-row strong,.overview-recent strong,.journal-entry h3,.journal-note,.profile-preview,.coach-output,.account-profile h2,.sidebar-account small,.subject-card h2,#practice-quiz fieldset,textarea,script,style')) continue;
+      if (node.parentElement?.closest('.task-title,.subject,.week-task p,.grade-row strong,.overview-recent strong,.journal-entry h3,.journal-note,.profile-preview,.coach-output,.account-profile h2,.sidebar-account small,.subject-card h2,#practice-quiz fieldset,option:not([value]),textarea,script,style')) continue;
       const previous = languageSources.get(node);
       const source = previous?.last===node.data ? previous.source : node.data;
       const last = studyTranslate(source);
       languageSources.set(node,{source,last});
       if (node.data!==last) node.data = last;
     }
-    for (const element of root.querySelectorAll('[aria-label]')) {
-      const value = element.getAttribute('aria-label');
-      const previous = languageSources.get(element);
-      const source = previous?.last===value ? previous.source : value;
-      const last = studyTranslate(source);
-      languageSources.set(element,{source,last});
-      if (value!==last) element.setAttribute('aria-label',last);
+    const attributes = ['aria-label', 'placeholder', 'title'];
+    const selector = attributes.map(attribute=>`[${attribute}]`).join(',');
+    for (const element of [root, ...root.querySelectorAll(selector)]) {
+      const sources = attributeSources.get(element) || {};
+      for (const attribute of attributes) {
+        const value = element.getAttribute(attribute);
+        if (value===null) { delete sources[attribute]; continue; }
+        const previous = sources[attribute];
+        const source = previous?.last===value ? previous.source : value;
+        const last = studyTranslate(source);
+        sources[attribute] = {source,last};
+        if (value!==last) element.setAttribute(attribute,last);
+      }
+      attributeSources.set(element,sources);
     }
   }
 }

@@ -281,6 +281,34 @@ select:not([multiple]):not([size]) {
   .widget-tools button { min-width: 44px; min-height: 44px; }
 }
 
+/* Let translated labels and browser text scaling set the height of controls. */
+body { font-family: system-ui, -apple-system, 'Segoe UI', sans-serif; }
+:is(.card, .page-heading, dialog) p { line-height: 1.6; }
+:is(.page-heading, .section-head, .topbar) > * { min-inline-size: 0; }
+:is(.page-heading, .section-head, .topbar) { flex-wrap: wrap; row-gap: 12px; }
+:is(.button, .text-button, .theme-picker, .week-toolbar button) { white-space: normal; overflow-wrap: anywhere; line-height: 1.4; }
+:is(.progress-metrics span, .overview-table, .overview-recent li, .widget-deadlines span) { font-size: .8125rem; line-height: 1.45; }
+:is(.page-heading h1, .section-head h2) { text-wrap: balance; }
+.week-toolbar { grid-template-columns: 44px minmax(0,1fr) 44px; max-inline-size: 100%; }
+
+@media (max-width: 600px) {
+  .topbar { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 10px 12px; padding-block: 12px; }
+  .topbar :is(#breadcrumb, #account-status) { grid-column: 1 / -1; }
+  .topbar .theme-picker { display: grid; gap: 4px; font-size: .8125rem; }
+  .topbar .theme-picker select { width: 100%; font-size: 1rem; }
+  .topbar #account-status { justify-self: start; }
+}
+
+@media (max-width: 600px), (max-width: 950px) and (pointer: coarse) and (orientation: landscape) {
+  .shell { --mobile-nav-height: calc(max(76px,4.75rem) + env(safe-area-inset-bottom,0px)); }
+  .mobile-nav :is(a,button) { font-size: .75rem; line-height: 1.25; }
+  .sidebar-menu #main-nav a { overflow-wrap: anywhere; }
+}
+
+@media (max-width: 360px) {
+  .sidebar-menu #main-nav { grid-template-columns: minmax(0,1fr); }
+}
+
 .sample-badge { background: var(--metric-bg,#eaf0e8); color: var(--muted); }
 .grade-preview { color: inherit; }
 :is(.muted,.subtitle,.empty,.task-meta,.task-time,.day-label,.week-task small,.grade-result small,.timer-status) {
