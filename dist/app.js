@@ -456,16 +456,31 @@ document.addEventListener('click',e=>{const widgetButton=e.target.closest('[data
     case 'questions':{const sentences=notes.split(/[.!?\n]+/).map(s=>s.trim()).filter(s=>s.split(/\s+/).length>=5);if(!sentences.length){$('#practice-error').textContent='Add a sentence with at least 5 words to create a demo question.';return;}questions=sentences.slice(0,5).map(sentence=>{const words=sentence.split(/\s+/);const index=words.reduce((best,w,i)=>w.replace(/[^a-zA-Z]/g,'').length>words[best].replace(/[^a-zA-Z]/g,'').length?i:best,0);words[index]='________';return {prompt:'Fill in the missing word: '+words.join(' ')+'.',answer:sentence+'.'};});render();break;}}});
 let pageEntrance;
 const navToggle = $('#nav-toggle');
+const navBackdrop = $('#nav-backdrop');
+function setMobileMenu(open) {
+  navToggle?.setAttribute('aria-expanded',String(open));
+  if (navBackdrop) navBackdrop.hidden = !open;
+  if (open) $('#main-nav a:not([data-page="dashboard"]):not([data-page="weekly"]):not([data-page="session"]):not([data-page="practice"])')?.focus();
+}
 navToggle?.addEventListener('click', () => {
-  navToggle.setAttribute('aria-expanded', String(navToggle.getAttribute('aria-expanded') !== 'true'));
+  setMobileMenu(navToggle.getAttribute('aria-expanded') !== 'true');
 });
-$('#main-nav')?.addEventListener('click', event => {
+navBackdrop?.addEventListener('click',()=>{
+  setMobileMenu(false);
+  navToggle?.focus();
+});
+document.addEventListener('keydown',event=>{
+  if (event.key!=='Escape' || navToggle?.getAttribute('aria-expanded')!=='true') return;
+  setMobileMenu(false);
+  navToggle.focus();
+});
+$('.sidebar')?.addEventListener('click', event => {
   if (!event.target.closest('a')) return;
   if (navToggle?.getAttribute('aria-expanded') === 'true') $('#main').focus();
-  navToggle?.setAttribute('aria-expanded', 'false');
+  setMobileMenu(false);
 });
 window.addEventListener('hashchange', () => {
-  navToggle?.setAttribute('aria-expanded', 'false');
+  setMobileMenu(false);
   const previousPage = page;
   render();
   const main = $('#main');

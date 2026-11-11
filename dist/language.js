@@ -11,6 +11,7 @@ Share anonymous feedback|Anonymes Feedback senden|Donner un avis anonyme|提交�
 Open in Google Forms|In Google Formulare öffnen|Ouvrir dans Google Forms|在 Google 表单中打开|Abrir en Google Forms|Apri in Google Moduli|Abrir no Google Forms|Google フォームで開く|Google 설문지에서 열기
 Theme|Design|Thème|主题|Tema|Tema|Tema|テーマ|테마
 Menu|Menü|Menu|菜单|Menú|Menu|Menu|メニュー|메뉴
+More|Mehr|Plus|更多|Más|Altro|Mais|その他|더 보기
 YOUR STUDY SPACE|DEIN LERNBEREICH|TON ESPACE D’ÉTUDE|你的学习空间|TU ESPACIO DE ESTUDIO|IL TUO SPAZIO DI STUDIO|O TEU ESPAÇO DE ESTUDO|学習スペース|나의 학습 공간
 Dashboard|Übersicht|Tableau de bord|仪表盘|Panel|Panoramica|Painel|ダッシュボード|대시보드
 Weekly plan|Wochenplan|Planning de la semaine|每周计划|Plan semanal|Piano settimanale|Plano semanal|週間計画|주간 계획
@@ -144,7 +145,7 @@ function studyTranslate(text) {
 
 const languageSources = new WeakMap();
 function translateStudyUI() {
-  const roots = document.querySelectorAll('.sidebar, .topbar, #main, #assignment-dialog, #toast');
+  const roots = document.querySelectorAll('.sidebar, .mobile-nav, .topbar, #main, #assignment-dialog, #toast');
   for (const root of roots) {
     const walker = document.createTreeWalker(root,NodeFilter.SHOW_TEXT);
     for (let node=walker.nextNode();node;node=walker.nextNode()) {
