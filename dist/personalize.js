@@ -73,6 +73,7 @@ function personalizePage() {
     <div class="practice-layout">
       <section class="card">
         <h2>Profile and theme</h2>
+        <div id="mobile-preferences" class="mobile-preferences"></div>
         <form id="personal-profile-form">
           <div class="profile-preview">${profileAvatar()}<strong>${esc(preferredName() || 'Guest workspace')}</strong></div>
           <label>Profile picture<input name="avatar" type="file" accept="image/jpeg,image/png,image/webp"></label>
@@ -83,7 +84,7 @@ function personalizePage() {
             <label>Accent color<input name="accent" type="color" value="${profile.accent}"></label>
             <label>Background tint<input name="tint" type="color" value="${profile.tint}"></label>
           </div>
-          <p class="muted">Changing a color applies your Custom theme. You can switch themes in the header.</p>
+          <p class="muted">Changing a color applies your Custom theme.</p>
           <p class="form-error" role="alert" id="profile-error"></p>
           <p id="profile-save-status" class="muted" role="status">Changes save automatically on this device.</p>
           <button class="text-button delete-control" type="button" data-reset-personal>Reset name and colors</button>

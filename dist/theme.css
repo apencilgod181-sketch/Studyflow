@@ -309,6 +309,14 @@ body { font-family: system-ui, -apple-system, 'Segoe UI', sans-serif; }
   .sidebar-menu #main-nav { grid-template-columns: minmax(0,1fr); }
 }
 
+.mobile-preferences:empty { display: none; }
+@media (max-width: 600px), (max-width: 950px) and (pointer: coarse) and (orientation: landscape) {
+  .topbar { display: none; }
+  .mobile-preferences { display: grid; gap: 12px; margin-block: 14px 20px; }
+  .mobile-preferences .theme-picker { display: grid; gap: 6px; font-size: .875rem; }
+  .mobile-preferences select { width: 100%; min-height: 44px; font-size: 1rem; }
+}
+
 .sample-badge { background: var(--metric-bg,#eaf0e8); color: var(--muted); }
 .grade-preview { color: inherit; }
 :is(.muted,.subtitle,.empty,.task-meta,.task-time,.day-label,.week-task small,.grade-result small,.timer-status) {
