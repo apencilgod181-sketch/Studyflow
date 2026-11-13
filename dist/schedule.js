@@ -65,7 +65,7 @@ function openScheduleImport() {
   dialog.setAttribute('aria-labelledby','schedule-import-title');
   dialog.innerHTML=`<form id="schedule-import-form"><div class="section-head"><h2 id="schedule-import-title">Import a schedule</h2><button type="button" class="icon-button" data-close-schedule aria-label="Close schedule importer">×</button></div>
     <p class="muted">Scan your timetable to preview the dates. Check the preview before adding it.</p>
-    <label>Schedule file (including Google Calendar .ics exports)<input name="file" type="file" accept=".pdf,.png,.jpg,.jpeg,.txt,.ics"></label>
+    <label>Schedule file (including Google Calendar ZIP and .ics exports)<input name="file" type="file" accept=".pdf,.png,.jpg,.jpeg,.txt,.ics,.zip"></label>
     <p class="muted">Calendar files are read on this device. PDF and image scans use Cloudflare AI and require sign-in.</p>
     <button type="button" class="button secondary" data-scan-schedule>Read file</button>
     <details data-schedule-settings><summary>Adjust schedule or enter it manually</summary><label>Schedule repeats<select name="mode"><option value="weekly">Every week</option><option value="cycle">Custom day cycle</option><option value="dates">Specific dates</option></select></label>
@@ -110,18 +110,33 @@ function openScheduleImport() {
   form.querySelector('[data-scan-schedule]').onclick=async event=>{
     const button=event.currentTarget;
     const file=fields.file.files[0];
-    if (!file || file.size>2097152) { status.textContent='Choose a file up to 2 MB.'; return; }
-    if (/\.ics$/i.test(file.name)) {
+    if (!file) { status.textContent='Choose a file first.'; return; }
+    const calendar = /\.(ics|zip)$/i.test(file.name);
+    if (file.size>(calendar?50:2)*1024*1024) { status.textContent=calendar?'Choose a calendar file up to 50 MB.':'Choose a document up to 2 MB.'; return; }
+    if (calendar) {
+      button.disabled=true;
+      status.textContent='Reading calendar…';
       resetPreview();
       try {
-        const rows = readCalendarEvents(await file.text());
+        const files = /\.zip$/i.test(file.name) ? await readCalendarZip(file) : [await file.text()];
+        const events = files.flatMap(source=>readCalendarEvents(source)).filter(row=>row.due>=dateKey());
+        const unique = [...new Map(events.map(row=>[JSON.stringify(row),row])).values()]
+          .filter(row=>!assignments.some(entry=>entry.name===row.name && entry.due===row.due && entry.schedule?.start===row.start && entry.schedule?.end===row.end))
+          .sort((a,b)=>a.due.localeCompare(b.due)||a.start.localeCompare(b.start));
+        if (!unique.length) throw Error('No new supported upcoming events found.');
+        const rows = unique.slice(0,Math.max(0,500-assignments.length));
+        if (!rows.length) throw Error('Your planner has reached its 500-entry limit.');
+        if (!dialog.open || fields.file.files[0]!==file) return;
         fields.mode.value='dates';
         fields.anchor.value=rows[0].due;
         fields.span.value=1;
         showMode();
         showPreview(rows);
+        if (rows.length<unique.length) status.textContent += " Showing the earliest events that fit in your planner.";
       } catch(error) {
         status.textContent=error.message;
+      } finally {
+        button.disabled=false;
       }
       return;
     }
@@ -286,15 +301,14 @@ function readCalendarEvents(source) {
     const name=(field('SUMMARY')||'Calendar event').replace(/\\([nN,;\\])/g,(_,c)=>/[nN]/.test(c)?' ':c).slice(0,120);
     rows.push({name,due:start.due,start:start.time,end:start.time?end.time:'',minutes:start.time?Math.max(5,scheduleMinutes(end.time)-scheduleMinutes(start.time)):5});
   }
-  if (!rows.length) throw Error('No supported events found. Choose an unzipped .ics file with individual calendar events.');
   return [...new Map(rows.map(row=>[JSON.stringify([row.name,row.due,row.start,row.end]),row])).values()].sort((a,b)=>a.due.localeCompare(b.due)||a.start.localeCompare(b.start));
 }
 
 function calendarPage() {
   return heading('YOUR SCHEDULE','Calendar','Move events between StudyFlow and your calendar app.') +
     `<section class="card"><h2>Bring in Google Calendar events</h2>
-    <p>Export your calendar from Google Calendar. If the download is a ZIP file, extract it and choose the .ics file for the calendar you want.</p>
-    <p class="muted">The importer supports individual all-day and same-day events. Recurring events and events that span midnight are skipped.</p>
+    <p>Export your calendar from Google Calendar. Choose the ZIP or .ics export directly. Calendar files up to 50 MB are supported.</p>
+    <p class="muted">The importer previews upcoming individual all-day and same-day events. Recurring events and events that span midnight are skipped.</p>
     <div class="timer-controls">
       <a class="button secondary" href="https://calendar.google.com/calendar/u/0/r/settings/export" target="_blank" rel="noopener noreferrer">Open Google Calendar settings ↗</a>
       <button type="button" class="button" data-schedule-open>Import calendar file</button>
@@ -302,4 +316,57 @@ function calendarPage() {
     <section class="card"><h2>Export from StudyFlow</h2>
     <p>Download your upcoming classes and deadlines as a calendar file.</p>
     <button type="button" class="button secondary" data-calendar-export>Download calendar (.ics)</button></section>`;
+}
+
+async function readCalendarZip(file) {
+  const bytes = new Uint8Array(await file.arrayBuffer());
+  const zip = new DataView(bytes.buffer);
+  const decoder = new TextDecoder();
+  let footer = bytes.length - 22;
+  const minimum = Math.max(0, footer - 65535);
+  while (footer >= minimum && (zip.getUint32(footer,true)!==0x06054b50 ||
+    footer+22+zip.getUint16(footer+20,true)!==bytes.length)) footer--;
+  if (footer<minimum) throw Error('This ZIP archive could not be read.');
+  const count = zip.getUint16(footer+10,true);
+  let offset = zip.getUint32(footer+16,true);
+  const calendars = [];
+  let expanded = 0;
+  const limit = 100*1024*1024;
+  for(let i=0;i<count;i++){
+    if (offset+46>footer || zip.getUint32(offset,true)!==0x02014b50) throw Error('This ZIP archive is incomplete.');
+    const flags=zip.getUint16(offset+8,true);
+    const method=zip.getUint16(offset+10,true);
+    const packed=zip.getUint32(offset+20,true);
+    const unpacked=zip.getUint32(offset+24,true);
+    const nameLength=zip.getUint16(offset+28,true);
+    const local=zip.getUint32(offset+42,true);
+    const name=decoder.decode(bytes.subarray(offset+46,offset+46+nameLength));
+    offset+=46+nameLength+zip.getUint16(offset+30,true)+zip.getUint16(offset+32,true);
+    if (!/\.ics$/i.test(name)) continue;
+    if ((flags&1) || ![0,8].includes(method)) throw Error('Use a standard, unencrypted calendar ZIP export.');
+    if (local+30>footer || zip.getUint32(local,true)!==0x04034b50) throw Error('This ZIP archive is incomplete.');
+    const start=local+30+zip.getUint16(local+26,true)+zip.getUint16(local+28,true);
+    if (start+packed>footer || expanded+unpacked>limit) throw Error('The calendar archive is too large when unpacked.');
+    const data=bytes.subarray(start,start+packed);
+    let stream=new Blob([data]).stream();
+    if(method===8) stream=stream.pipeThrough(new DecompressionStream('deflate-raw'));
+    const reader=stream.getReader();
+    let size=0;
+    let source='';
+    while(true){
+      const {done,value}=await reader.read();
+      if(done) break;
+      size+=value.byteLength;
+      if(size>unpacked || expanded+size>limit){
+        await reader.cancel();
+        throw Error('The calendar archive is too large when unpacked.');
+      }
+      source+=decoder.decode(value,{stream:true});
+    }
+    if(size!==unpacked) throw Error('This ZIP archive is incomplete.');
+    expanded+=size;
+    calendars.push(source+decoder.decode());
+  }
+  if(!calendars.length) throw Error('No .ics calendar files were found in this ZIP.');
+  return calendars;
 }
