@@ -2,20 +2,37 @@ const scheduleMinutes = value => {
   const match = /^([01]\d|2[0-3]):([0-5]\d)$/.exec(value);
   return match ? Number(match[1])*60+Number(match[2]) : NaN;
 };
+function normalizeScheduleTime(value) {
+  const time = /^(\d{1,2}):([0-5]\d)\s*(am|pm)?$/i.exec(value || '');
+  if (!time) return '';
+  const hours = Number(time[1]);
+  const period = time[3]?.toLowerCase();
+  if (period && (hours<1 || hours>12)) return '';
+  const hour = period ? hours%12 + (period==='pm'?12:0) : hours;
+  return String(hour).padStart(2,'0')+':'+time[2];
+}
+function parseCycleOrder(value) {
+  const order = value.trim().toLowerCase();
+  if (order.includes(',')) return order.split(',').map(label=>label.trim()).filter(Boolean);
+  if (!order) return [];
+  return order.match(/(?:day\s+[a-z0-9]+|[a-z0-9]+\s+day)(?=\s|$)|\S+/g);
+}
 function schedulePreview(form) {
   const fields = new FormData(form);
   const date = String(fields.get('anchor'));
   const mode = fields.get('mode');
   const span = Number(fields.get('span'));
-  const order = String(fields.get('order')).split(',').map(s=>s.trim().toLowerCase()).filter(Boolean);
+  const order = parseCycleOrder(String(fields.get('order')));
   const index = order.indexOf(String(fields.get('first')).trim().toLowerCase());
   if (!date || !Number.isInteger(span) || span<1 || span>90) throw Error('Choose a starting date and 1 to 90 days.');
   if (mode==='cycle' && (index<0 || new Set(order).size!==order.length)) throw Error('Enter unique cycle labels and choose which label applies on the starting date.');
   const rows = String(fields.get('rows')).split(/\r?\n/).filter(line=>line.trim()).map((line,i)=>{
-    const [label,start,end,name] = line.split('|').map(value=>value.trim());
+    let [label,start,end,name] = line.split('|').map(value=>value.trim());
+    start = normalizeScheduleTime(start);
+    end = normalizeScheduleTime(end);
     const minutes = scheduleMinutes(end)-scheduleMinutes(start);
     if (!label || !name || name.length>120 || !(minutes>=5 && minutes<=1200)) throw Error('Check row '+(i+1)+': enter a day, start and end time, and title.');
-    if (mode==='cycle' && !order.includes(label.toLowerCase())) throw Error('Unknown cycle label on row '+(i+1)+'.');
+    if (mode==='cycle' && !parseCycleOrder(label).every(day=>order.includes(day))) throw Error('Unknown cycle label on row '+(i+1)+'.');
     if (mode==='weekly' && !['monday','tuesday','wednesday','thursday','friday','saturday','sunday'].includes(label.toLowerCase())) throw Error('Use full English weekday names in weekly mode.');
     if (mode==='dates' && (!/^\d{4}-\d{2}-\d{2}$/.test(label) || Number.isNaN(Date.parse(label)) || new Date(label).toISOString().slice(0,10)!==label)) throw Error('Use valid YYYY-MM-DD dates in dated mode.');
     return {label:label.toLowerCase(),start,end,name,minutes};
@@ -30,7 +47,7 @@ function schedulePreview(form) {
     const due = dateKey(cursor);
     const label = mode==='cycle' ? order[cycle++ % order.length] :
       mode==='weekly' ? cursor.toLocaleDateString('en',{weekday:'long'}).toLowerCase() : due;
-    for (const row of rows.filter(item=>item.label===label)) dates.push({...row,due});
+    for (const row of rows.filter(item=>mode==='cycle' ? parseCycleOrder(item.label).includes(label) : item.label===label)) dates.push({...row,due});
   }
   const key = row=>JSON.stringify([row.name,row.due,row.start,row.end]);
   const existing = new Set(assignments.filter(a=>a.schedule).map(a=>key({...a,...a.schedule})));
@@ -53,7 +70,7 @@ function openScheduleImport() {
     <button type="button" class="button secondary" data-scan-schedule>Scan file</button>
     <details data-schedule-settings><summary>Adjust schedule or enter it manually</summary><label>Schedule repeats<select name="mode"><option value="weekly">Every week</option><option value="cycle">Custom day cycle</option><option value="dates">Specific dates</option></select></label>
     <div class="form-grid"><label>Starting date<input type="date" name="anchor" value="${dateKey()}" required></label><label>Calendar days to import<input type="number" name="span" min="1" max="90" value="28" required></label></div>
-    <div data-cycle-fields hidden><label>Cycle order, separated by commas<input name="order" placeholder="Day 1, Day 2, Day 3"></label><label>Which cycle day is the starting date?<input name="first" placeholder="Day 2"></label></div>
+    <div data-cycle-fields hidden><label>Cycle order<input name="order" placeholder="A B C D"></label><label>Which cycle day is the starting date?<select name="first"><option value="">Select a cycle day</option></select></label></div>
     <label><input type="checkbox" name="weekends"> Count weekends in the repeat</label>
     <label>Schedule rows<textarea name="rows" rows="6" placeholder="Monday | 08:30 | 09:15 | Mathematics"></textarea></label>
     <p class="muted" data-row-format></p>
@@ -74,6 +91,10 @@ function openScheduleImport() {
     saveButton.hidden=true;
   }
   function showMode(){
+    const selected = fields.first.value;
+    const labels = [...new Set(parseCycleOrder(fields.order.value))];
+    fields.first.replaceChildren(new Option('Select a cycle day', ''), ...labels.map(label=>new Option(label.toUpperCase(),label)));
+    fields.first.value = labels.includes(selected) ? selected : '';
     form.querySelector('[data-cycle-fields]').hidden=fields.mode.value!=='cycle';
     fields.weekends.disabled=fields.mode.value==='dates';
     const example={weekly:'Monday',cycle:'Day 2',dates:'2026-11-16'}[fields.mode.value];
@@ -113,7 +134,7 @@ function openScheduleImport() {
       }
       const weekdays=/^(monday|tuesday|wednesday|thursday|friday|saturday|sunday)$/i;
       if (!allDated) {
-        const labels=[...new Map(result.rows.filter(row=>row.day.trim()).map(row=>[row.day.trim().toLowerCase(),row.day.trim()])).values()];
+        const labels=[...new Set(result.rows.flatMap(row=>parseCycleOrder(row.day)))];
         fields.mode.value=labels.every(label=>weekdays.test(label))?'weekly':'cycle';
         if(fields.mode.value==='cycle'){
           fields.order.value=labels.join(', ');
