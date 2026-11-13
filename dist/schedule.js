@@ -67,7 +67,7 @@ function openScheduleImport(calendarOnly = false) {
     <p class="muted">${calendarOnly?'Choose a ZIP or .ics file to preview upcoming events.':'Scan your timetable to preview the dates. Check the preview before adding it.'}</p>
     <label>${calendarOnly?"Calendar file":"Schedule file"}<input name="file" type="file" accept="${calendarOnly?".ics,.zip":".pdf,.png,.jpg,.jpeg,.txt"}"></label>
     <p class="muted">${calendarOnly?'Files up to 50 MB are read on this device.':'Document scans use Cloudflare AI and require sign-in.'}</p>
-    <button type="button" class="button secondary" data-scan-schedule>Read file</button>
+    ${calendarOnly?'<label class="calendar-past-toggle"><input type="checkbox" name="includePast"> Include past events</label>':""}<button type="button" class="button secondary" data-scan-schedule>Read file</button>
     <details data-schedule-settings ${calendarOnly?"hidden":""}><summary>Adjust schedule or enter it manually</summary><label>Schedule repeats<select name="mode"><option value="weekly">Every week</option><option value="cycle">Custom day cycle</option><option value="dates">Specific dates</option></select></label>
     <div class="form-grid"><label>Starting date<input type="date" name="anchor" value="${dateKey()}" required></label><label>Calendar days to import<input type="number" name="span" min="1" max="90" value="28" required></label></div>
     <div data-cycle-fields hidden><label>Cycle order<input name="order" placeholder="A B C D"></label><label>Which cycle day is the starting date?<select name="first"><option value="">Select a cycle day</option></select></label></div>
@@ -120,7 +120,10 @@ function openScheduleImport(calendarOnly = false) {
       resetPreview();
       try {
         const files = /\.zip$/i.test(file.name) ? await readCalendarZip(file) : [await file.text()];
-        const events = files.flatMap(source=>readCalendarEvents(source)).filter(row=>row.due>=dateKey());
+        const supported = files.flatMap(source=>readCalendarEvents(source));
+        const events = supported.filter(row=>fields.includePast.checked || row.due>=dateKey());
+        if (!events.length && supported.length) throw Error("This file has past events. Select Include past events and read the file again.");
+        if (!supported.length) throw Error("No individual all-day or same-day events could be read. Recurring events are skipped.");
         const unique = [...new Map(events.map(row=>[JSON.stringify(row),row])).values()]
           .filter(row=>!assignments.some(entry=>entry.name===row.name && entry.due===row.due && entry.schedule?.start===row.start && entry.schedule?.end===row.end))
           .sort((a,b)=>a.due.localeCompare(b.due)||a.start.localeCompare(b.start));

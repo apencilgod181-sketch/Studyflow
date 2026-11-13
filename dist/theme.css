@@ -672,3 +672,5 @@ input::placeholder, textarea::placeholder { color: var(--muted); opacity: 1; }
 .schedule-import-dialog :is(input, select, textarea) { min-width: 0; max-width: 100%; }
 .schedule-import-dialog [name="rows"] { min-height: 8rem; }
 .schedule-import-dialog .form-grid { row-gap: 0; }
+.schedule-import-dialog .calendar-past-toggle { display: flex; align-items: center; gap: .65rem; }
+.schedule-import-dialog .calendar-past-toggle input { width: 1.15rem; height: 1.15rem; margin: 0; }
