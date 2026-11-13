@@ -59,16 +59,16 @@ function schedulePreview(form) {
   }).sort((a,b)=>a.due.localeCompare(b.due)||a.start.localeCompare(b.start));
 }
 
-function openScheduleImport() {
+function openScheduleImport(calendarOnly = false) {
   const dialog=document.createElement('dialog');
   dialog.className='schedule-import-dialog';
   dialog.setAttribute('aria-labelledby','schedule-import-title');
-  dialog.innerHTML=`<form id="schedule-import-form"><div class="section-head"><h2 id="schedule-import-title">Import a schedule</h2><button type="button" class="icon-button" data-close-schedule aria-label="Close schedule importer">×</button></div>
-    <p class="muted">Scan your timetable to preview the dates. Check the preview before adding it.</p>
-    <label>Schedule file (including Google Calendar ZIP and .ics exports)<input name="file" type="file" accept=".pdf,.png,.jpg,.jpeg,.txt,.ics,.zip"></label>
-    <p class="muted">Calendar files are read on this device. PDF and image scans use Cloudflare AI and require sign-in.</p>
+  dialog.innerHTML=`<form id="schedule-import-form"><div class="section-head"><h2 id="schedule-import-title">${calendarOnly?'Import calendar events':'Import a schedule'}</h2><button type="button" class="icon-button" data-close-schedule aria-label="Close schedule importer">×</button></div>
+    <p class="muted">${calendarOnly?'Choose a ZIP or .ics file to preview upcoming events.':'Scan your timetable to preview the dates. Check the preview before adding it.'}</p>
+    <label>${calendarOnly?"Calendar file":"Schedule file"}<input name="file" type="file" accept="${calendarOnly?".ics,.zip":".pdf,.png,.jpg,.jpeg,.txt"}"></label>
+    <p class="muted">${calendarOnly?'Files up to 50 MB are read on this device.':'Document scans use Cloudflare AI and require sign-in.'}</p>
     <button type="button" class="button secondary" data-scan-schedule>Read file</button>
-    <details data-schedule-settings><summary>Adjust schedule or enter it manually</summary><label>Schedule repeats<select name="mode"><option value="weekly">Every week</option><option value="cycle">Custom day cycle</option><option value="dates">Specific dates</option></select></label>
+    <details data-schedule-settings ${calendarOnly?"hidden":""}><summary>Adjust schedule or enter it manually</summary><label>Schedule repeats<select name="mode"><option value="weekly">Every week</option><option value="cycle">Custom day cycle</option><option value="dates">Specific dates</option></select></label>
     <div class="form-grid"><label>Starting date<input type="date" name="anchor" value="${dateKey()}" required></label><label>Calendar days to import<input type="number" name="span" min="1" max="90" value="28" required></label></div>
     <div data-cycle-fields hidden><label>Cycle order<input name="order" placeholder="A B C D"></label><label>Which cycle day is the starting date?<select name="first"><option value="">Select a cycle day</option></select></label></div>
     <label><input type="checkbox" name="weekends"> Count weekends in the repeat</label>
@@ -112,6 +112,7 @@ function openScheduleImport() {
     const file=fields.file.files[0];
     if (!file) { status.textContent='Choose a file first.'; return; }
     const calendar = /\.(ics|zip)$/i.test(file.name);
+    if (calendar!==calendarOnly) { status.textContent=calendarOnly?'Choose a ZIP or .ics calendar file.':'Choose a timetable document or image.'; return; }
     if (file.size>(calendar?50:2)*1024*1024) { status.textContent=calendar?'Choose a calendar file up to 50 MB.':'Choose a document up to 2 MB.'; return; }
     if (calendar) {
       button.disabled=true;
@@ -227,7 +228,8 @@ function openScheduleImport() {
   };
 }
 document.addEventListener('click',event=>{
-  if(event.target.closest('[data-schedule-open]')) openScheduleImport();
+  if(event.target.closest('[data-calendar-import]')) openScheduleImport(true);
+  else if(event.target.closest('[data-schedule-open]')) openScheduleImport();
 });
 
 function createCalendarFile(entries, exportedAt = new Date()) {
@@ -311,7 +313,7 @@ function calendarPage() {
     <p class="muted">The importer previews upcoming individual all-day and same-day events. Recurring events and events that span midnight are skipped.</p>
     <div class="timer-controls">
       <a class="button secondary" href="https://calendar.google.com/calendar/u/0/r/settings/export" target="_blank" rel="noopener noreferrer">Open Google Calendar settings ↗</a>
-      <button type="button" class="button" data-schedule-open>Import calendar file</button>
+      <button type="button" class="button" data-calendar-import>Import calendar file</button>
     </div></section>
     <section class="card"><h2>Export from StudyFlow</h2>
     <p>Download your upcoming classes and deadlines as a calendar file.</p>
