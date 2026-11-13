@@ -652,3 +652,7 @@ input::placeholder, textarea::placeholder { color: var(--muted); opacity: 1; }
   .icon-button { min-width: 44px; }
   .task input[type=checkbox] { width: 24px; height: 24px; }
 }
+.schedule-import-dialog { width: min(600px, calc(100% - 24px)); max-height: 88vh; max-height: 88dvh; overflow-y: auto; }
+.schedule-import-dialog [data-schedule-preview] { max-height: 15rem; overflow-y: auto; padding-inline-start: 1.5rem; }
+.schedule-import-dialog [data-schedule-preview] li { margin-block: .35rem; overflow-wrap: anywhere; }
+.schedule-import-dialog [data-scan-schedule] { margin-bottom: 1rem; }
