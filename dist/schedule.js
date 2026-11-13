@@ -46,7 +46,7 @@ function openScheduleImport() {
   const dialog=document.createElement('dialog');
   dialog.className='schedule-import-dialog';
   dialog.setAttribute('aria-labelledby','schedule-import-title');
-  dialog.innerHTML=`<form id="schedule-import-form"><div class="section-head"><h2 id="schedule-import-title">Import a schedule</h2><button type="button" class="icon-button" data-close-schedule >Close <span aria-hidden="true">×</span></button></div>
+  dialog.innerHTML=`<form id="schedule-import-form"><div class="section-head"><h2 id="schedule-import-title">Import a schedule</h2><button type="button" class="icon-button" data-close-schedule aria-label="Close schedule importer">×</button></div>
     <ol class="schedule-steps"><li>Choose a file and select <strong>Scan file</strong>, or enter schedule rows manually.</li><li>Set the starting date and repeat pattern. For a custom cycle, choose the first cycle day and whether weekends count.</li><li>Select <strong>Preview dates</strong>, review the entries, then select <strong>Add to weekly plan</strong>.</li></ol>
     <label>Schedule file<input name="file" type="file" accept=".pdf,.png,.jpg,.jpeg,.txt"></label>
     <p class="muted">Scan sends the file to Cloudflare AI for extraction. Sign in to scan, or enter rows manually.</p>
