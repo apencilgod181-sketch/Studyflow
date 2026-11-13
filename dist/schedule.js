@@ -120,10 +120,10 @@ function openScheduleImport(calendarOnly = false) {
       resetPreview();
       try {
         const files = /\.zip$/i.test(file.name) ? await readCalendarZip(file) : [await file.text()];
-        const supported = files.flatMap(source=>readCalendarEvents(source));
+        const supported = files.flatMap(source=>readCalendarEvents(source, fields.includePast.checked));
         const events = supported.filter(row=>fields.includePast.checked || row.due>=dateKey());
         if (!events.length && supported.length) throw Error("This file has past events. Select Include past events and read the file again.");
-        if (!supported.length) throw Error("No individual all-day or same-day events could be read. Recurring events are skipped.");
+        if (!supported.length) throw Error("No individual all-day or same-day events could be read. Check that the export contains dated events.");
         const unique = [...new Map(events.map(row=>[JSON.stringify(row),row])).values()]
           .filter(row=>!assignments.some(entry=>entry.name===row.name && entry.due===row.due && entry.schedule?.start===row.start && entry.schedule?.end===row.end))
           .sort((a,b)=>a.due.localeCompare(b.due)||a.start.localeCompare(b.start));
@@ -282,13 +282,13 @@ document.addEventListener('click', event=>{
 });
 
 
-function readCalendarEvents(source) {
+function readCalendarEvents(source, includePast = false) {
   const unfolded = source.replace(/\r?\n[ \t]/g,'');
   const events = [...unfolded.matchAll(/^BEGIN:VEVENT\r?\n([\s\S]*?)^END:VEVENT\s*$/gm)];
   const rows = [];
   for (const [, event] of events) {
     if (/^STATUS:CANCELLED\s*$/mi.test(event)) continue;
-    if (/^(RRULE|RDATE|RECURRENCE-ID)[;:]/mi.test(event)) continue;
+    if (/^RECURRENCE-ID[;:]/mi.test(event)) continue;
     const field = name => event.match(new RegExp('^'+name+'(?:;[^:\\r\\n]*)?:(.*)$','mi'))?.[1]?.trim();
     const parse = value => {
       const match = /^(\d{4})(\d{2})(\d{2})(?:T(\d{2})(\d{2})\d{2}(Z)?)?$/.exec(value || '');
@@ -304,7 +304,10 @@ function readCalendarEvents(source) {
     const end=parse(field('DTEND'));
     if (!start || (start.time && (!end || end.due!==start.due || !(scheduleMinutes(end.time)>scheduleMinutes(start.time))))) continue;
     const name=(field('SUMMARY')||'Calendar event').replace(/\\([nN,;\\])/g,(_,c)=>/[nN]/.test(c)?' ':c).slice(0,120);
-    rows.push({name,due:start.due,start:start.time,end:start.time?end.time:'',minutes:start.time?Math.max(5,scheduleMinutes(end.time)-scheduleMinutes(start.time)):5});
+    const rule=field('RRULE');
+    const dates=rule?calendarRepeatDates(start.due,rule,includePast):[start.due];
+    const excluded=new Set([...event.matchAll(/^EXDATE(?:;[^:\r\n]*)?:(.*)$/gmi)].flatMap(m=>m[1].split(',').map(value=>parse(value.trim())?.due)));
+    for(const due of dates.filter(date=>!excluded.has(date))) rows.push({name,due,start:start.time,end:start.time?end.time:'',minutes:start.time?Math.max(5,scheduleMinutes(end.time)-scheduleMinutes(start.time)):5});
   }
   return [...new Map(rows.map(row=>[JSON.stringify([row.name,row.due,row.start,row.end]),row])).values()].sort((a,b)=>a.due.localeCompare(b.due)||a.start.localeCompare(b.start));
 }
@@ -313,7 +316,7 @@ function calendarPage() {
   return heading('YOUR SCHEDULE','Calendar','Move events between StudyFlow and your calendar app.') +
     `<section class="card"><h2>Bring in Google Calendar events</h2>
     <p>Export your calendar from Google Calendar. Choose the ZIP or .ics export directly. Calendar files up to 50 MB are supported.</p>
-    <p class="muted">The importer previews upcoming individual all-day and same-day events. Recurring events and events that span midnight are skipped.</p>
+    <p class="muted">The importer previews all-day and same-day events, including supported repeats for the next 90 days. Include past events adds repeats from the previous year.</p>
     <div class="timer-controls">
       <a class="button secondary" href="https://calendar.google.com/calendar/u/0/r/settings/export" target="_blank" rel="noopener noreferrer">Open Google Calendar settings ↗</a>
       <button type="button" class="button" data-calendar-import>Import calendar file</button>
@@ -374,4 +377,52 @@ async function readCalendarZip(file) {
   }
   if(!calendars.length) throw Error('No .ics calendar files were found in this ZIP.');
   return calendars;
+}
+
+function calendarRepeatDates(start, rule, includePast) {
+  const fields=Object.fromEntries(rule.split(';').map(part=>part.split('=')));
+  const {FREQ, UNTIL, COUNT, BYDAY, BYMONTH, BYMONTHDAY, WKST='MO'}=fields;
+  const interval=Number(fields.INTERVAL||1);
+  const allowed=['FREQ','UNTIL','COUNT','BYDAY','BYMONTH','BYMONTHDAY','WKST','INTERVAL'];
+  if (!['DAILY','WEEKLY','MONTHLY','YEARLY'].includes(FREQ) ||
+      Object.keys(fields).some(key=>!allowed.includes(key)) ||
+      !Number.isSafeInteger(interval) || interval<1) return [start];
+
+  const weekdays=['SU','MO','TU','WE','TH','FR','SA'];
+  const weekStart=Math.max(0,weekdays.indexOf(WKST));
+  const dayMs=86400000;
+  const origin=new Date(start+'T00:00:00Z');
+  const today=new Date(dateKey()+'T00:00:00Z');
+  const earliest=+today-(includePast?365:0)*dayMs;
+  const until=UNTIL?.slice(0,8);
+  const latest=+today+90*dayMs;
+  const dates=[];
+  let occurrences=0;
+  for(let time=Math.max(+origin,Date.UTC(1900,0,1));time<=latest;time+=dayMs){
+    const date=new Date(time);
+    const key=date.toISOString().slice(0,10);
+    if(until && key.replace(/-/g,'')>until) break;
+    const year=date.getUTCFullYear()-origin.getUTCFullYear();
+    const month=date.getUTCMonth();
+    const day=date.getUTCDate();
+    const weekday=weekdays[date.getUTCDay()];
+    const elapsed=(time-origin)/dayMs;
+    const week=Math.floor((elapsed+(origin.getUTCDay()-weekStart+7)%7)/7);
+    const unit={DAILY:elapsed,WEEKLY:week,MONTHLY:year*12+month-origin.getUTCMonth(),YEARLY:year}[FREQ];
+    if(unit%interval) continue;
+    if(BYMONTH && !BYMONTH.split(',').map(Number).includes(month+1)) continue;
+    const last=new Date(Date.UTC(date.getUTCFullYear(),month+1,0)).getUTCDate();
+    if(BYMONTHDAY && !BYMONTHDAY.split(',').map(Number).some(n=>n===day||n===day-last-1)) continue;
+    if(BYDAY && !BYDAY.split(',').some(spec=>{
+      if(!spec.endsWith(weekday)) return false;
+      const ordinal=Number(spec.slice(0,-2));
+      return !ordinal || ordinal===Math.ceil(day/7) || ordinal===-Math.ceil((last-day+1)/7);
+    })) continue;
+    if(FREQ==='WEEKLY' && !BYDAY && date.getUTCDay()!==origin.getUTCDay()) continue;
+    if(['MONTHLY','YEARLY'].includes(FREQ) && !BYDAY && !BYMONTHDAY && day!==origin.getUTCDate()) continue;
+    if(FREQ==='YEARLY' && !BYMONTH && month!==origin.getUTCMonth()) continue;
+    if(COUNT && ++occurrences>Number(COUNT)) break;
+    if(time>=earliest) dates.push(key);
+  }
+  return dates;
 }
