@@ -657,7 +657,7 @@ input::placeholder, textarea::placeholder { color: var(--muted); opacity: 1; }
 .schedule-import-dialog [data-schedule-preview] li { margin-block: .35rem; overflow-wrap: anywhere; }
 .schedule-import-dialog [data-scan-schedule] { margin-bottom: 1rem; }
 .schedule-import-dialog #schedule-import-title,
-.schedule-import-dialog [data-close-schedule] { color: var(--text); }
+.schedule-import-dialog [data-close-schedule] { color: var(--green); }
 .schedule-import-dialog [data-close-schedule] { display: inline-flex; align-items: center; gap: .45rem; min-height: 44px; padding-inline: .8rem; font-size: .875rem; }
 .schedule-import-dialog [data-close-schedule] span { font-size: 1.25rem; }
 .schedule-import-dialog [data-close-schedule]:hover { background: var(--metric-bg); }
