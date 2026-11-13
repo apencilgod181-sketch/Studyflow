@@ -47,17 +47,17 @@ function openScheduleImport() {
   dialog.className='schedule-import-dialog';
   dialog.setAttribute('aria-labelledby','schedule-import-title');
   dialog.innerHTML=`<form id="schedule-import-form"><div class="section-head"><h2 id="schedule-import-title">Import a schedule</h2><button type="button" class="icon-button" data-close-schedule aria-label="Close schedule importer">×</button></div>
-    <ol class="schedule-steps"><li>Choose a file and select <strong>Scan file</strong>, or enter schedule rows manually.</li><li>Set the starting date and repeat pattern. For a custom cycle, choose the first cycle day and whether weekends count.</li><li>Select <strong>Preview dates</strong>, review the entries, then select <strong>Add to weekly plan</strong>.</li></ol>
+    <p class="muted">Scan your timetable to preview the dates. Check the preview before adding it.</p>
     <label>Schedule file<input name="file" type="file" accept=".pdf,.png,.jpg,.jpeg,.txt"></label>
     <p class="muted">Scan sends the file to Cloudflare AI for extraction. Sign in to scan, or enter rows manually.</p>
     <button type="button" class="button secondary" data-scan-schedule>Scan file</button>
-    <label>Schedule repeats<select name="mode"><option value="weekly">Every week</option><option value="cycle">Custom day cycle</option><option value="dates">Specific dates</option></select></label>
+    <details data-schedule-settings><summary>Adjust schedule or enter it manually</summary><label>Schedule repeats<select name="mode"><option value="weekly">Every week</option><option value="cycle">Custom day cycle</option><option value="dates">Specific dates</option></select></label>
     <div class="form-grid"><label>Starting date<input type="date" name="anchor" value="${dateKey()}" required></label><label>Calendar days to import<input type="number" name="span" min="1" max="90" value="28" required></label></div>
     <div data-cycle-fields hidden><label>Cycle order, separated by commas<input name="order" placeholder="Day 1, Day 2, Day 3"></label><label>Which cycle day is the starting date?<input name="first" placeholder="Day 2"></label></div>
     <label><input type="checkbox" name="weekends"> Count weekends in the repeat</label>
     <label>Schedule rows<textarea name="rows" rows="6" placeholder="Monday | 08:30 | 09:15 | Mathematics"></textarea></label>
     <p class="muted" data-row-format></p>
-    <p role="status" data-schedule-status></p><button class="button secondary" type="submit">Preview dates</button>
+    <button class="button secondary" type="submit">Update preview</button></details><p class="muted" role="status" data-schedule-status></p>
     <ol data-schedule-preview></ol><button type="button" class="button" data-save-schedule hidden>Add to weekly plan</button></form>`;
   document.body.append(dialog);
   dialog.showModal();
@@ -111,9 +111,24 @@ function openScheduleImport() {
           fields.span.value=Math.min(90,1+Math.round((Date.parse(dates.at(-1))-Date.parse(dates[0]))/86400000));
         }
       }
+      const weekdays=/^(monday|tuesday|wednesday|thursday|friday|saturday|sunday)$/i;
+      if (!allDated) {
+        const labels=[...new Map(result.rows.filter(row=>row.day.trim()).map(row=>[row.day.trim().toLowerCase(),row.day.trim()])).values()];
+        fields.mode.value=labels.every(label=>weekdays.test(label))?'weekly':'cycle';
+        if(fields.mode.value==='cycle'){
+          fields.order.value=labels.join(', ');
+          fields.first.value='';
+        }
+      }
       fields.rows.value=result.rows.map(row=>[allDated?row.date:row.day,row.start,row.end,row.name].map(clean).join(' | ')).join('\n');
       showMode();
-      status.textContent='Check the extracted rows, then choose how the schedule repeats.';
+      if(fields.mode.value==='cycle'){
+        form.querySelector('[data-schedule-settings]').open=true;
+        status.textContent='Cycle days detected. Enter the cycle day for your starting date, then update the preview.';
+        fields.first.focus();
+      } else {
+        form.requestSubmit();
+      }
     } catch(error) {
       status.textContent=error.message || 'The file could not be scanned.';
     } finally {
@@ -135,6 +150,7 @@ function openScheduleImport() {
       saveButton.hidden=!pending.length;
     } catch(error) {
       resetPreview();
+      form.querySelector('[data-schedule-settings]').open=true;
       status.textContent=error.message;
     }
   });

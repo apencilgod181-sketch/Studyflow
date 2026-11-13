@@ -663,3 +663,12 @@ input::placeholder, textarea::placeholder { color: var(--muted); opacity: 1; }
 .schedule-import-dialog [data-close-schedule]:hover { background: var(--metric-bg); }
 .schedule-steps { color: var(--muted); padding-inline-start: 1.3rem; margin-block: 0 1.25rem; line-height: 1.5; }
 .schedule-steps li + li { margin-top: .4rem; }
+.schedule-import-dialog [data-save-schedule][hidden] { display: none; }
+.schedule-import-dialog [data-schedule-settings] { margin-block: 1rem; }
+.schedule-import-dialog [data-schedule-settings] summary { color: var(--green); cursor: pointer; margin-block: .75rem; }
+.schedule-import-dialog [data-schedule-preview] { color: var(--muted); }
+.schedule-import-dialog label:has(input[name="weekends"]) { display: flex; align-items: center; gap: .65rem; min-height: 44px; }
+.schedule-import-dialog input[name="weekends"] { flex: none; width: 1.15rem; height: 1.15rem; margin: 0; }
+.schedule-import-dialog :is(input, select, textarea) { min-width: 0; max-width: 100%; }
+.schedule-import-dialog [name="rows"] { min-height: 8rem; }
+.schedule-import-dialog .form-grid { row-gap: 0; }
