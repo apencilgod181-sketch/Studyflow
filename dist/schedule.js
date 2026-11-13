@@ -65,9 +65,9 @@ function openScheduleImport() {
   dialog.setAttribute('aria-labelledby','schedule-import-title');
   dialog.innerHTML=`<form id="schedule-import-form"><div class="section-head"><h2 id="schedule-import-title">Import a schedule</h2><button type="button" class="icon-button" data-close-schedule aria-label="Close schedule importer">×</button></div>
     <p class="muted">Scan your timetable to preview the dates. Check the preview before adding it.</p>
-    <label>Schedule file<input name="file" type="file" accept=".pdf,.png,.jpg,.jpeg,.txt"></label>
-    <p class="muted">Scan sends the file to Cloudflare AI for extraction. Sign in to scan, or enter rows manually.</p>
-    <button type="button" class="button secondary" data-scan-schedule>Scan file</button>
+    <label>Schedule file (including Google Calendar .ics exports)<input name="file" type="file" accept=".pdf,.png,.jpg,.jpeg,.txt,.ics"></label>
+    <p class="muted">Calendar files are read on this device. PDF and image scans use Cloudflare AI and require sign-in.</p>
+    <button type="button" class="button secondary" data-scan-schedule>Read file</button>
     <details data-schedule-settings><summary>Adjust schedule or enter it manually</summary><label>Schedule repeats<select name="mode"><option value="weekly">Every week</option><option value="cycle">Custom day cycle</option><option value="dates">Specific dates</option></select></label>
     <div class="form-grid"><label>Starting date<input type="date" name="anchor" value="${dateKey()}" required></label><label>Calendar days to import<input type="number" name="span" min="1" max="90" value="28" required></label></div>
     <div data-cycle-fields hidden><label>Cycle order<input name="order" placeholder="A B C D"></label><label>Which cycle day is the starting date?<select name="first"><option value="">Select a cycle day</option></select></label></div>
@@ -111,6 +111,20 @@ function openScheduleImport() {
     const button=event.currentTarget;
     const file=fields.file.files[0];
     if (!file || file.size>2097152) { status.textContent='Choose a file up to 2 MB.'; return; }
+    if (/\.ics$/i.test(file.name)) {
+      resetPreview();
+      try {
+        const rows = readCalendarEvents(await file.text());
+        fields.mode.value='dates';
+        fields.anchor.value=rows[0].due;
+        fields.span.value=1;
+        showMode();
+        showPreview(rows);
+      } catch(error) {
+        status.textContent=error.message;
+      }
+      return;
+    }
     if (!owner) { status.textContent='Sign in to scan a file, or enter schedule rows manually.'; return; }
     button.disabled=true;
     status.textContent='Reading schedule…';
@@ -160,24 +174,27 @@ function openScheduleImport() {
     event.preventDefault();
     resetPreview();
     try {
-      pending=schedulePreview(form);
-      if (assignments.length+pending.length>500) throw Error('Choose a shorter date range to stay within the 500-entry planner limit.');
-      for(const row of pending){
-        const item=document.createElement('li');
-        item.textContent=row.due+' · '+row.start+'–'+row.end+' · '+row.name;
-        preview.append(item);
-      }
-      status.textContent=pending.length ? pending.length+' entries ready to add.' : 'No new entries in this date range.';
-      saveButton.hidden=!pending.length;
+      showPreview(schedulePreview(form));
     } catch(error) {
       resetPreview();
       form.querySelector('[data-schedule-settings]').open=true;
       status.textContent=error.message;
     }
   });
+  function showPreview(rows){
+      pending=rows;
+      if (assignments.length+pending.length>500) throw Error('Choose a shorter date range to stay within the 500-entry planner limit.');
+      for(const row of pending){
+        const item=document.createElement('li');
+        item.textContent=row.due+' · '+(row.start?row.start+'–'+row.end+' · ':'All day · ')+row.name;
+        preview.append(item);
+      }
+      status.textContent=pending.length ? pending.length+' entries ready to add.' : 'No new entries in this date range.';
+      saveButton.hidden=!pending.length;
+  }
   saveButton.onclick=()=>{
     if(owner!==globalThis.studyAccount.user?.id){status.textContent='Your account changed. Reopen the importer.';return;}
-    const rows=schedulePreview(form);
+    const rows=pending.filter(row=>!assignments.some(entry=>entry.name===row.name && entry.due===row.due && entry.schedule?.start===row.start && entry.schedule?.end===row.end));
     if (!rows.length || assignments.length+rows.length>500) {status.textContent='The plan changed. Preview the import again.';resetPreview();return;}
     assignments.push(...rows.map(row=>({
       id:crypto.randomUUID(),name:row.name,subject:'Schedule',due:row.due,minutes:row.minutes,
@@ -243,3 +260,46 @@ document.addEventListener('click', event=>{
   setTimeout(()=>URL.revokeObjectURL(url),1000);
   toast('Calendar downloaded. Import the file into your calendar app.');
 });
+
+
+function readCalendarEvents(source) {
+  const unfolded = source.replace(/\r?\n[ \t]/g,'');
+  const events = [...unfolded.matchAll(/^BEGIN:VEVENT\r?\n([\s\S]*?)^END:VEVENT\s*$/gm)];
+  const rows = [];
+  for (const [, event] of events) {
+    if (/^STATUS:CANCELLED\s*$/mi.test(event)) continue;
+    if (/^(RRULE|RDATE|RECURRENCE-ID)[;:]/mi.test(event)) continue;
+    const field = name => event.match(new RegExp('^'+name+'(?:;[^:\\r\\n]*)?:(.*)$','mi'))?.[1]?.trim();
+    const parse = value => {
+      const match = /^(\d{4})(\d{2})(\d{2})(?:T(\d{2})(\d{2})\d{2}(Z)?)?$/.exec(value || '');
+      if (!match) return null;
+      const [,year,month,day,hour,minute,utc]=match;
+      const due = year+'-'+month+'-'+day;
+      if (!hour) return {due,time:''};
+      if (!utc) return {due,time:hour+':'+minute};
+      const date=new Date(due+'T'+hour+':'+minute+':00Z');
+      return Number.isNaN(+date)?null:{due:dateKey(date),time:String(date.getHours()).padStart(2,'0')+':'+String(date.getMinutes()).padStart(2,'0')};
+    };
+    const start=parse(field('DTSTART'));
+    const end=parse(field('DTEND'));
+    if (!start || (start.time && (!end || end.due!==start.due || !(scheduleMinutes(end.time)>scheduleMinutes(start.time))))) continue;
+    const name=(field('SUMMARY')||'Calendar event').replace(/\\([nN,;\\])/g,(_,c)=>/[nN]/.test(c)?' ':c).slice(0,120);
+    rows.push({name,due:start.due,start:start.time,end:start.time?end.time:'',minutes:start.time?Math.max(5,scheduleMinutes(end.time)-scheduleMinutes(start.time)):5});
+  }
+  if (!rows.length) throw Error('No supported events found. Choose an unzipped .ics file with individual calendar events.');
+  return [...new Map(rows.map(row=>[JSON.stringify([row.name,row.due,row.start,row.end]),row])).values()].sort((a,b)=>a.due.localeCompare(b.due)||a.start.localeCompare(b.start));
+}
+
+function calendarPage() {
+  return heading('YOUR SCHEDULE','Calendar','Move events between StudyFlow and your calendar app.') +
+    `<section class="card"><h2>Bring in Google Calendar events</h2>
+    <p>Export your calendar from Google Calendar. If the download is a ZIP file, extract it and choose the .ics file for the calendar you want.</p>
+    <p class="muted">The importer supports individual all-day and same-day events. Recurring events and events that span midnight are skipped.</p>
+    <div class="timer-controls">
+      <a class="button secondary" href="https://calendar.google.com/calendar/u/0/r/settings/export" target="_blank" rel="noopener noreferrer">Open Google Calendar settings ↗</a>
+      <button type="button" class="button" data-schedule-open>Import calendar file</button>
+    </div></section>
+    <section class="card"><h2>Export from StudyFlow</h2>
+    <p>Download your upcoming classes and deadlines as a calendar file.</p>
+    <button type="button" class="button secondary" data-calendar-export>Download calendar (.ics)</button></section>`;
+}
