@@ -315,7 +315,17 @@ function readCalendarEvents(source, includePast = false) {
 function calendarPage() {
   return heading('YOUR SCHEDULE','Calendar','Move events between StudyFlow and your calendar app.') +
     `<section class="card"><h2>Bring in Google Calendar events</h2>
-    <p>Export your calendar from Google Calendar. Choose the ZIP or .ics export directly. Calendar files up to 50 MB are supported.</p>
+    <details style="margin-block: 1rem">
+      <summary>Import a shared calendar from Other calendars</summary>
+      <ol>
+        <li>On a computer, open Google Calendar → Settings.</li>
+        <li>Under <strong>Settings for other calendars</strong>, select the calendar and open <strong>Integrate calendar</strong>.</li>
+        <li>Open the <strong>Public address in iCal format</strong> in a new tab to download the .ics file.</li>
+        <li>Below, select <strong>Import calendar file</strong>, choose the download, and click <strong>Read file</strong>. Review the preview and select <strong>Add to weekly plan</strong>.</li>
+      </ol>
+      <p class="muted">If you only see Calendar ID or Public URL to this calendar, or the iCal link gives an access error, ask the calendar owner for an .ics export. Keep any secret iCal address private.</p>
+    </details>
+    <p>For your own calendars, download an export from Google Calendar. StudyFlow accepts ZIP and .ics files up to 50 MB.</p>
     <p class="muted">The importer previews all-day and same-day events, including supported repeats for the next 90 days. Include past events adds repeats from the previous year.</p>
     <div class="timer-controls">
       <a class="button secondary" href="https://calendar.google.com/calendar/u/0/r/settings/export" target="_blank" rel="noopener noreferrer">Open Google Calendar settings ↗</a>
